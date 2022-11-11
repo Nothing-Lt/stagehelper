@@ -1,5 +1,6 @@
 import sys
 from os.path import exists
+import struct
 
 from sonypy_val import *
 
@@ -18,25 +19,54 @@ def valid_device(device_path):
 
 
 # get header from cntinf.dat
-def get_header(file_name):
-    f = open(file_name, 'rb')
+def get_header(f):
+    f.seek(0)
     header = f.read()[0:16]
     magic = (header[0:4]).decode('utf-8')
-    cte = header[4:8] # constant number
-    obj_cnt = 0
-    padding = 0
+    cte = struct.unpack('<I', header[4:8])[0] # constant number
+    obj_cnt = header[8]
     print(magic)
     print(cte)
-    f.close()
+    print(obj_cnt)
+
+
+def get_object_pointer(f):
+    f.seek(0)
+    object_pointer = f.read()[16:32]
+    magic = (object_pointer[0:4]).decode('utf-8')
+    offset = struct.unpack('>I', object_pointer[4:8])[0]
+    length = struct.unpack('>I', object_pointer[8:12])[0]
+    print(magic)
+    print(offset)
+    print(length)
+
+
+def get_object(f):
+    f.seek(0)
+    obj = f.read()[32:44]
+    magic = (obj[0:4]).decode('utf-8')
+    count = struct.unpack('>H', obj[4:6])[0]
+    size = struct.unpack('>H', obj[6:8])[0]
+    print(magic)
+    print(count)
+    print(size)
 
 
 def read_all_tracks(device_path):
     #with open(deivce_path+'/'+AUDIO_P+'/'+CNTINF_F, 'rb') as cntinf_f:
-    get_header(device_path+'/'+AUDIO_P+'/'+CNTINF_F)
+    with open(device_path+'/'+AUDIO_P+'/'+CNTINF_F, 'rb') as f:
+        print('read header')
+        get_header(f)
+        print('read object header')
+        get_object_pointer(f)
+        print('object')
+        get_object(f)
+
 
 def print_help():
     print('Usage:')
     print('python3 sonypy.py [device] [option] [dir/soungname]')
+
 
 if __name__ == "__main__":
     
