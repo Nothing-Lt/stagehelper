@@ -1,5 +1,5 @@
 import sys
-from os.path import exists
+from os import path, mkdir
 import logging
 import struct
 
@@ -10,9 +10,9 @@ def valid_device(device_path):
     if not device_path:
         return 'empty'
 
-    if exists(device_path):
+    if path.exists(device_path):
         # check the omgaudio/cntinfo.dat
-        if exists(device_path+'/'+AUDIO_P+'/'+CNTINF_F):
+        if path.exists(device_path+'/'+AUDIO_P+'/'+CNTINF_F):
             return 'valid'
         else: 
             return 'wrongdev'
@@ -67,6 +67,9 @@ def get_track(f):
         filled, tag_type, tag_val = track.fill_in_tags(raw_tag)
         if not filled:
              logging.warning('track %d-tag tag_type unknown %s', i, tag_type)
+        
+        # bind this track with actual file
+        track.bind_with_file()
 
     logging.info(str(track))
     return track
@@ -77,13 +80,20 @@ def read_all_tracks(device_path):
         logging.info('read header')
         header = get_header(f)
         logging.info('read object header')
-        obj_p = get_object_pointer(f)
+        obj_pt = get_object_pointer(f)
         logging.info('object')
         obj = get_object(f)
         logging.info('track')
         for i in range(0, obj.track_cnt):
             track = get_track(f)
             tracks.append(track)
+
+    with open('04CNTINF.DAT', 'wb') as f:
+        f.write(header.tobytes())
+        f.write(obj_pt.tobytes())
+        f.write(obj.tobytes())
+        for track in tracks:
+            f.write(track.tobytes())
     return tracks
 
 
@@ -98,13 +108,27 @@ if __name__ == "__main__":
         print_help()
         exit(1)
 
+    dev_path = sys.argv[1]
+
     # check the device is valid device or not
-    ret = valid_device(sys.argv[1])
-    if (ret == 'wrongdev') or (ret == 'nodev') or (ret == 'empty'):
+    ret = valid_device(dev_path)
+    if (ret == 'wrongdev') :
+        create_file = input('Restore the filesystem?[Y/n]')
+        if create_file == 'Y' or create_file == 'y':
+            if not path.exists(dev_path + AUDIO_P):
+                mkdir(dev_path + AUDIO_P)
+            f = open(dev_path + AUDIO_P + '/' + CNTINF_F, 'wb+')
+            header = Header()
+            obj_pt = ObjectPointer()
+            obj = Object()
+            f.write(header.tobytes() + obj_pt.tobytes() + obj.tobytes())
+            f.close()
+
+    elif (ret == 'nodev') or (ret == 'empty'):
         print(ret)
-        exit(1)
+        exit(2)    
 
     print('Found walkman')
-    tracks = read_all_tracks(sys.argv[1])
+    tracks = read_all_tracks(dev_path)
     for track in tracks:
         print(track)

@@ -6,13 +6,18 @@ import struct
 class Header():
     def __init__(self):
         self.magic = ''
-        self.CTE = None
+        self.CTE = 0
         self.op_cnt = 0 # amount of object pointer
 
-    def __init__(self, bytestream):
-        self.magic = (bytestream[0:4]).decode('utf-8')
-        self.CTE = bytestream[4:8] # constant number
-        self.op_cnt = bytestream[8]
+    def __init__(self, bytestream=None):
+        if bytestream is not None:
+            self.magic = (bytestream[0:4]).decode('utf-8')
+            self.CTE = bytestream[4:8] # constant number
+            self.op_cnt = bytestream[8]
+        else:
+            self.magic = 'CNIF'
+            self.CTE = struct.pack('I', 257)
+            self.op_cnt = 1 # amount of object pointer
 
     def tobytes(self):
         bytes(self.magic, 'utf-8')
@@ -24,14 +29,19 @@ class Header():
 # Define object pointer
 class ObjectPointer():
     def __init__(self):
-        self.magic = ''
-        self.offset = 0
-        self.length = 0
+        self.magic = 'CNFB'
+        self.offset = 32
+        self.length = 1328
 
-    def __init__(self, bytestream):
-        self.magic = (bytestream[0:4]).decode('utf-8')
-        self.offset = struct.unpack('>I', bytestream[4:8])[0]
-        self.length = struct.unpack('>I', bytestream[8:12])[0]
+    def __init__(self, bytestream=None):
+        if bytestream is not None:
+            self.magic = (bytestream[0:4]).decode('utf-8')
+            self.offset = struct.unpack('>I', bytestream[4:8])[0]
+            self.length = struct.unpack('>I', bytestream[8:12])[0]
+        else:
+            self.magic = 'CNFB'
+            self.offset = 32
+            self.length = 1328
 
     def tobytes(self):
         return bytes(self.magic, 'utf-8') + \
@@ -41,14 +51,19 @@ class ObjectPointer():
 # Define object
 class Object():
     def __init__(self):
-        self.magic = ''
+        self.magic = 'CNFB'
         self.track_cnt = 0 # amount of record
         self.track_sz = 0 # size of track 
 
-    def __init__(self, bytestream):
-        self.magic = (bytestream[0:4]).decode('utf-8')
-        self.track_cnt = struct.unpack('>H', bytestream[4:6])[0]
-        self.track_sz = struct.unpack('>H', bytestream[6:8])[0]
+    def __init__(self, bytestream=None):
+        if bytestream is not None:
+            self.magic = (bytestream[0:4]).decode('utf-8')
+            self.track_cnt = struct.unpack('>H', bytestream[4:6])[0]
+            self.track_sz = struct.unpack('>H', bytestream[6:8])[0]
+        else:
+            self.magic = 'CNFB'
+            self.track_cnt = 0 # amount of record
+            self.track_sz = 0 # size of track 
 
     def tobytes(self):
         return bytes(self.magic, 'utf-8') + \
@@ -73,23 +88,22 @@ class Track():
         self.genre = ''
         self.tag_len = 0
         self.tag_sz = 0
-        self.name = ''
+        self.filename = ''
 
-    def __init__(self, bytestream):
+    def __init__(self, bytestream=None):
         self.ftype = bytestream[0:4]
         self.encoding = struct.unpack('>I', bytestream[4:8])[0]
-        self.time_len = struct.unpack('>I', bytestream[8:12])[0] / 1000
+        self.time_len = int(struct.unpack('>I', bytestream[8:12])[0] / 1000)
         self.tag_len = struct.unpack('>H', bytestream[12:14])[0]
         self.tag_sz = struct.unpack('>H', bytestream[14:16])[0]
-        self.name = ''
+        self.filename = ''
 
-
-    def fill_in_tags(self, bytestream):
-        
+    def fill_in_tags(self, bytestream):        
         # decode bytestream
         tag_type = bytestream[0:4].decode('utf-8')
         tag_encoding = bytestream[4:5]
         tag_val = bytestream[5:].decode('utf-8', "ignore")
+        print(tag_encoding)
 
         # fill in info 
         if tag_type == 'TIT2':
@@ -104,6 +118,64 @@ class Track():
             return False, tag_type, tag_val
         return True, tag_type, tag_val
 
+    def bind_with_file(self, filename):
+        self.filename = filename
+
+    def tobytes(self):
+        # encode the track 
+        self.tag_len = 5
+        bytestream =  self.ftype + \
+                        struct.pack('>2I2H', 
+                        self.encoding, (self.time_len * 1000), 
+                        self.tag_len, self.tag_sz)
+
+        # encode each tag for this track
+        # encode title
+        bytestream_title = bytes('TIT2', 'utf-8') + \
+                        struct.pack('B', 0) + \
+                        bytes(self.title, 'utf-8')
+
+        padding = self.tag_sz - len(bytestream_title)
+        for j in range(0, padding):
+            bytestream_title += bytes([0])
+        
+        # encode author
+        bytestream_author = bytes('TPE1', 'utf-8') + \
+                            struct.pack('B', 0) + \
+                            bytes(self.author, 'utf-8')
+        
+        padding = self.tag_sz - len(bytestream_author)
+        for j in range(0, padding):
+            bytestream_author += bytes([0])
+        
+        # encode album
+        bytestream_album = bytes('TALB', 'utf-8') + \
+                        struct.pack('B', 0) + \
+                        bytes(self.album, 'utf-8')
+        
+        padding = self.tag_sz - len(bytestream_album)
+        for j in range(0, padding):
+            bytestream_album += bytes([0])
+
+        # encode grene
+        bytestream_genre = bytes('TCON', 'utf-8') + \
+                    struct.pack('B', 0) + \
+                    bytes(self.genre, 'utf-8')
+        
+        padding = self.tag_sz - len(bytestream_genre)
+        for j in range(0, padding):
+            bytestream_genre += bytes([0])
+
+        # encode TSOP
+        bytestream_tsop = bytes('TSOP', 'utf-8') + \
+                        struct.pack('>H', 2)
+        padding = self.tag_sz - len(bytestream_tsop)
+        for j in range(0, padding):
+            bytestream_tsop += bytes([0])
+
+        bytestream += (bytestream_title + bytestream_author + bytestream_album + bytestream_genre + bytestream_tsop)
+        return bytestream
+
     def __str__(self):
         return 'ftype:'+ str(self.ftype) + ', ' + \
                 'encoding:' + str(self.encoding)+ ', ' + \
@@ -112,7 +184,3 @@ class Track():
                 'author:' + self.author + ', ' + \
                 'album:' + self.album + ', ' + \
                 'genre:' + self.genre
-
-    def tobytes(self):
-        bytestream = struct.pack()
-        return bytestream
