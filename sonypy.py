@@ -73,6 +73,7 @@ class Track():
         self.genre = ''
         self.tag_len = 0
         self.tag_sz = 0
+        self.name = ''
 
     def __init__(self, bytestream):
         self.ftype = bytestream[0:4]
@@ -80,6 +81,7 @@ class Track():
         self.time_len = struct.unpack('>I', bytestream[8:12])[0] / 1000
         self.tag_len = struct.unpack('>H', bytestream[12:14])[0]
         self.tag_sz = struct.unpack('>H', bytestream[14:16])[0]
+        self.name = ''
 
 
     def fill_in_tags(self, bytestream):

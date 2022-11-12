@@ -1,8 +1,2 @@
-1. finish readAllTracks
-    a. what is called "track"???
-    a. open OMGAUDIO/04CNTINF.DAT as f
-    b. open OMGAUDIO/TRACKS.DAT as f2
-    c. read header from f
-    d. get object pointer from f
-    e. get object from f
-
+1. implement the tobytes function in track class 
+2. consider how to bind the track ele with audio file
