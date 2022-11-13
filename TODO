@@ -1,2 +1,10 @@
 1. implement the tobytes function in track class 
 2. consider how to bind the track ele with audio file
+    a. get oma filename
+    b. create directory
+    c. check decode method and 
+        1) load deocde table or
+        2) get key
+    d. read info from audio file
+
+     

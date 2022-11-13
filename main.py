@@ -3,7 +3,7 @@ from os import path, mkdir
 import logging
 import struct
 
-from sonypy_val import *
+from sonypy_var import *
 from sonypy import *
 
 def valid_device(device_path):
@@ -104,6 +104,16 @@ def print_help():
 
 if __name__ == "__main__":
     logging.basicConfig(filename='sonypy.log', level=logging.WARNING)
+
+    track = Track()
+    f = open('test_audio/file_example_MP3_5MG.mp3', 'rb')
+    if not f:
+        print('not opened file')
+        exit(0)
+    track.load_from_audio_file(f.read())
+    f.close()
+    exit(0)
+
     if len(sys.argv) < 2:
         print_help()
         exit(1)

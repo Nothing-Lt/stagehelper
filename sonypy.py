@@ -89,21 +89,34 @@ class Track():
         self.tag_len = 0
         self.tag_sz = 0
         self.filename = ''
+    # def __init__(self)
 
     def __init__(self, bytestream=None):
-        self.ftype = bytestream[0:4]
-        self.encoding = struct.unpack('>I', bytestream[4:8])[0]
-        self.time_len = int(struct.unpack('>I', bytestream[8:12])[0] / 1000)
-        self.tag_len = struct.unpack('>H', bytestream[12:14])[0]
-        self.tag_sz = struct.unpack('>H', bytestream[14:16])[0]
-        self.filename = ''
+        if bytestream is not None:
+            self.ftype = bytestream[0:4]
+            self.encoding = struct.unpack('>I', bytestream[4:8])[0]
+            self.time_len = int(struct.unpack('>I', bytestream[8:12])[0] / 1000)
+            self.tag_len = struct.unpack('>H', bytestream[12:14])[0]
+            self.tag_sz = struct.unpack('>H', bytestream[14:16])[0]
+            self.filename = ''
+        else:
+            self.ftype = None
+            self.encoding = 0
+            self.time_len = 0
+            self.title = ''
+            self.author = ''
+            self.album = ''
+            self.genre = ''
+            self.tag_len = 0
+            self.tag_sz = 0
+            self.filename = ''
+    # def __init__(self, bytestream=None)
 
     def fill_in_tags(self, bytestream):        
         # decode bytestream
         tag_type = bytestream[0:4].decode('utf-8')
         tag_encoding = bytestream[4:5]
         tag_val = bytestream[5:].decode('utf-8', "ignore")
-        print(tag_encoding)
 
         # fill in info 
         if tag_type == 'TIT2':
@@ -117,9 +130,44 @@ class Track():
         else:
             return False, tag_type, tag_val
         return True, tag_type, tag_val
+    # def fill_in_tags(self, bytestream)
 
     def bind_with_file(self, filename):
         self.filename = filename
+    # def bind_with_file(self, filename)
+
+    def load_from_audio_file(self, bytestream):
+        if len(bytestream) < 10:
+            return
+
+        print(bytestream)
+        audio_header = bytestream[0:10]
+        audio_tag = str(audio_header[0:3].decode('utf-8'))
+        if audio_tag == 'ID3': 
+            start_point = (int(audio_header[6]) << 21) + \
+                        (int(audio_header[7]) << 14) + \
+                        (int(audio_header[8]) << 7) + \
+                        int(audio_header[9]) + 10
+        else:
+            start_point = 0
+        print(audio_header)
+        print(audio_tag)
+        print(start_point)
+
+        # skip 0s
+        while True:
+            if bytestream[start_point] is not 0:
+                break;
+            start_point += 1  
+        
+        if bytestream[start_point] != 0xff:
+            print('Not a valid file format')
+            return
+        # go parse the info from audio file
+        print('it is 0xff')
+        # TODO : a lot ...
+    
+    # def load_from_audio_file(self, bytestream)
 
     def tobytes(self):
         # encode the track 
@@ -175,6 +223,7 @@ class Track():
 
         bytestream += (bytestream_title + bytestream_author + bytestream_album + bytestream_genre + bytestream_tsop)
         return bytestream
+    # def tobytes(self)
 
     def __str__(self):
         return 'ftype:'+ str(self.ftype) + ', ' + \
@@ -184,3 +233,4 @@ class Track():
                 'author:' + self.author + ', ' + \
                 'album:' + self.album + ', ' + \
                 'genre:' + self.genre
+    # def __str__(self)
