@@ -1,6 +1,7 @@
 
 import struct
 
+from sonypy_var import * 
 
 # Define 04CNTINF.DAT's header
 class Header():
@@ -156,15 +157,38 @@ class Track():
 
         # skip 0s
         while True:
-            if bytestream[start_point] is not 0:
+            if bytestream[start_point] != 0:
                 break;
             start_point += 1  
         
         if bytestream[start_point] != 0xff:
             print('Not a valid file format')
             return
-        # go parse the info from audio file
         print('it is 0xff')
+        # go parse the info from audio file
+        mpeg_head = bytestream[start_point+1:start_point+4]
+        if mpeg_head[0] & 0xe0 != 0xe0:
+            print('invalid encoding')
+            return
+        
+        self.encoding = ((mpeg_head[0] & 0x1e) << 3) + \
+                        ((mpeg_head[1] & 0xf0) << 4)
+        mpeg_ver = (mpeg_head[0] & 0x18) >> 3
+        layer_ver = (mpeg_head[0] & 0x6) >> 1
+        sample_rate_idx = (mpeg_head[1] & 0xc) >> 2
+        print(mpeg_ver)
+        print(layer_ver)
+        print(sample_rate_idx)
+        
+        if (((mpeg_ver * 3) + sample_rate_idx) >= 12) or (((mpeg_ver * 3) + layer_ver) >= 16):
+            frame_cnt = 0
+        else:
+            sample_rate = SAMPLE_RATE[(mpeg_ver*3)+sample_rate_idx]
+            sample_perframe = SAMPLE_PER_FRAME[(mpeg_ver*4)+layer_ver]
+            frame_cnt = (self.time_len * sample_rate) / sample_perframe
+        print(sample_rate)
+        print(sample_perframe)
+        print(frame_cnt)
         # TODO : a lot ...
     
     # def load_from_audio_file(self, bytestream)
