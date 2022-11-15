@@ -99,21 +99,21 @@ def read_all_tracks(device_path):
 
 def print_help():
     print('Usage:')
-    print('python3 sonypy.py [device] [option] [dir/soungname]')
+    print('python3 main.py [device] [option] [dir/soungname]')
 
 
 if __name__ == "__main__":
     logging.basicConfig(filename='sonypy.log', level=logging.WARNING)
 
     ####################### for debug ############################
-    track = Track()
-    f = open(sys.argv[1], 'rb')
-    if not f:
-        print('not opened file')
-        exit(0)
-    track.load_from_audio_file(f.read())
-    f.close()
-    exit(0)
+#    track = Track()
+#    f = open(sys.argv[1], 'rb')
+#    if not f:
+#        print('not opened file')
+#        exit(0)
+#    track.load_from_audio_file(f.read())
+#    f.close()
+#    exit(0)
     ##############################################################
     if len(sys.argv) < 2:
         print_help()
@@ -137,9 +137,9 @@ if __name__ == "__main__":
 
     elif (ret == 'nodev') or (ret == 'empty'):
         print(ret)
-        exit(2)    
+        exit(2)
 
     print('Found walkman')
-    tracks = read_all_tracks(dev_path)
-    for track in tracks:
-        print(track)
+    #tracks = read_all_tracks(dev_path)
+    #for track in tracks:
+    #    print(track)
