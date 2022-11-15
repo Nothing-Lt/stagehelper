@@ -69,7 +69,7 @@ def get_track(f):
              logging.warning('track %d-tag tag_type unknown %s', i, tag_type)
         
         # bind this track with actual file
-        track.bind_with_file()
+        track.bind_with_file('dummy.dat')
 
     logging.info(str(track))
     return track
@@ -87,14 +87,7 @@ def read_all_tracks(device_path):
         for i in range(0, obj.track_cnt):
             track = get_track(f)
             tracks.append(track)
-
-    with open('04CNTINF.DAT', 'wb') as f:
-        f.write(header.tobytes())
-        f.write(obj_pt.tobytes())
-        f.write(obj.tobytes())
-        for track in tracks:
-            f.write(track.tobytes())
-    return tracks
+    return header, obj_pt, obj, tracks
 
 
 def print_help():
@@ -140,6 +133,13 @@ if __name__ == "__main__":
         exit(2)
 
     print('Found walkman')
-    #tracks = read_all_tracks(dev_path)
-    #for track in tracks:
-    #    print(track)
+    header, obj_pt, obj, tracks = read_all_tracks(dev_path)
+    for track in tracks:
+       print(track)
+
+    with open('04CNTINF.DAT', 'wb') as f:
+        f.write(header.tobytes())
+        f.write(obj_pt.tobytes())
+        f.write(obj.tobytes())
+        for track in tracks:
+            f.write(track.tobytes())
