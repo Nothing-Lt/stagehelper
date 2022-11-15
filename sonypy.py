@@ -1,7 +1,7 @@
 
 import struct
 
-from sonypy_var import * 
+from sonypy_var import *
 
 # Define 04CNTINF.DAT's header
 class Header():
@@ -115,8 +115,8 @@ class Track():
     def fill_in_tags(self, bytestream):        
         # decode bytestream
         tag_type = bytestream[0:4].decode('utf-8')
-        tag_encoding = bytestream[4:5]
-        tag_val = bytestream[5:].decode('utf-8', "ignore")
+        tag_encoding = bytestream[4:6]
+        tag_val = bytestream[6:].decode('utf-8', "ignore")
 
         # fill in info 
         if tag_type == 'TIT2':
@@ -159,7 +159,7 @@ class Track():
             if bytestream[start_point] != 0:
                 break;
             start_point += 1  
-        
+
         if bytestream[start_point] != 0xff:
             print('Not a valid file format')
             return
@@ -169,7 +169,7 @@ class Track():
         if mpeg_head[0] & 0xe0 != 0xe0:
             print('invalid encoding')
             return
-        
+
         self.encoding = ((mpeg_head[0] & 0x1e) << 3) + \
                         ((mpeg_head[1] & 0xf0) << 4)
         mpeg_ver = (mpeg_head[0] & 0x18) >> 3
@@ -178,7 +178,7 @@ class Track():
         print(mpeg_ver)
         print(layer_ver)
         print(sample_rate_idx)
-        
+
         if (((mpeg_ver * 3) + sample_rate_idx) >= 12) or (((mpeg_ver * 3) + layer_ver) >= 16):
             frame_cnt = 0
         else:
@@ -189,7 +189,7 @@ class Track():
         print(sample_perframe)
         print(frame_cnt)
         # TODO : a lot ...
-    
+
     # def load_from_audio_file(self, bytestream)
 
     def tobytes(self):
@@ -203,8 +203,9 @@ class Track():
         # encode each tag for this track
         # encode title
         bytestream_title = bytes('TIT2', 'utf-8')[0:4] + \
-                        struct.pack('H', 0) + \
+                        struct.pack('>H', 2) + \
                         bytes(self.title, 'utf-8')
+        print(bytes(self.title, 'utf-8'))
 
         padding = self.tag_sz - len(bytestream_title)
         for j in range(0, padding):
@@ -212,27 +213,27 @@ class Track():
         
         # encode author
         bytestream_author = bytes('TPE1', 'utf-8')[0:4] + \
-                            struct.pack('H', 0) + \
+                            struct.pack('>H', 2) + \
                             bytes(self.author, 'utf-8')
-        
+
         padding = self.tag_sz - len(bytestream_author)
         for j in range(0, padding):
             bytestream_author += bytes([0])
-        
+
         # encode album
         bytestream_album = bytes('TALB', 'utf-8')[0:4] + \
-                        struct.pack('H', 0) + \
+                        struct.pack('>H', 2) + \
                         bytes(self.album, 'utf-8')
-        
+
         padding = self.tag_sz - len(bytestream_album)
         for j in range(0, padding):
             bytestream_album += bytes([0])
 
         # encode grene
         bytestream_genre = bytes('TCON', 'utf-8')[0:4] + \
-                    struct.pack('H', 0) + \
+                    struct.pack('>H', 2) + \
                     bytes(self.genre, 'utf-8')
-        
+
         padding = self.tag_sz - len(bytestream_genre)
         for j in range(0, padding):
             bytestream_genre += bytes([0])
