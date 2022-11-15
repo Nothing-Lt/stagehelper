@@ -205,7 +205,6 @@ class Track():
         bytestream_title = bytes('TIT2', 'utf-8')[0:4] + \
                         struct.pack('>H', 2) + \
                         bytes(self.title, 'utf-8')
-        print(bytes(self.title, 'utf-8'))
 
         padding = self.tag_sz - len(bytestream_title)
         for j in range(0, padding):
