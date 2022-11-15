@@ -21,8 +21,7 @@ class Header():
             self.op_cnt = 1 # amount of object pointer
 
     def tobytes(self):
-        bytes(self.magic, 'utf-8')
-        return bytes(self.magic, 'utf-8') + \
+        return bytes(self.magic, 'utf-8')[0:4] + \
                 self.CTE + \
                 struct.pack('8B', self.op_cnt, 0, 0, 0, 0, 0, 0, 0)
 
@@ -45,7 +44,7 @@ class ObjectPointer():
             self.length = 1328
 
     def tobytes(self):
-        return bytes(self.magic, 'utf-8') + \
+        return bytes(self.magic, 'utf-8')[0:4] + \
                 struct.pack('>3I', self.offset, self.length, 0)
 
 
@@ -67,7 +66,7 @@ class Object():
             self.track_sz = 0 # size of track 
 
     def tobytes(self):
-        return bytes(self.magic, 'utf-8') + \
+        return bytes(self.magic, 'utf-8')[0:4] + \
                 struct.pack('>2H2I', self.track_cnt, self.track_sz, 0, 0)
 
 
@@ -203,8 +202,8 @@ class Track():
 
         # encode each tag for this track
         # encode title
-        bytestream_title = bytes('TIT2', 'utf-8') + \
-                        struct.pack('B', 0) + \
+        bytestream_title = bytes('TIT2', 'utf-8')[0:4] + \
+                        struct.pack('H', 0) + \
                         bytes(self.title, 'utf-8')
 
         padding = self.tag_sz - len(bytestream_title)
@@ -212,8 +211,8 @@ class Track():
             bytestream_title += bytes([0])
         
         # encode author
-        bytestream_author = bytes('TPE1', 'utf-8') + \
-                            struct.pack('B', 0) + \
+        bytestream_author = bytes('TPE1', 'utf-8')[0:4] + \
+                            struct.pack('H', 0) + \
                             bytes(self.author, 'utf-8')
         
         padding = self.tag_sz - len(bytestream_author)
@@ -221,8 +220,8 @@ class Track():
             bytestream_author += bytes([0])
         
         # encode album
-        bytestream_album = bytes('TALB', 'utf-8') + \
-                        struct.pack('B', 0) + \
+        bytestream_album = bytes('TALB', 'utf-8')[0:4] + \
+                        struct.pack('H', 0) + \
                         bytes(self.album, 'utf-8')
         
         padding = self.tag_sz - len(bytestream_album)
@@ -230,8 +229,8 @@ class Track():
             bytestream_album += bytes([0])
 
         # encode grene
-        bytestream_genre = bytes('TCON', 'utf-8') + \
-                    struct.pack('B', 0) + \
+        bytestream_genre = bytes('TCON', 'utf-8')[0:4] + \
+                    struct.pack('H', 0) + \
                     bytes(self.genre, 'utf-8')
         
         padding = self.tag_sz - len(bytestream_genre)
@@ -239,7 +238,7 @@ class Track():
             bytestream_genre += bytes([0])
 
         # encode TSOP
-        bytestream_tsop = bytes('TSOP', 'utf-8') + \
+        bytestream_tsop = bytes('TSOP', 'utf-8')[0:4] + \
                         struct.pack('>H', 2)
         padding = self.tag_sz - len(bytestream_tsop)
         for j in range(0, padding):
