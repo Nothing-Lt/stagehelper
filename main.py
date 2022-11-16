@@ -99,14 +99,11 @@ if __name__ == "__main__":
     logging.basicConfig(filename='sonypy.log', level=logging.WARNING)
 
     ####################### for debug ############################
-#    track = Track()
-#    f = open(sys.argv[1], 'rb')
-#    if not f:
-#        print('not opened file')
-#        exit(0)
-#    track.load_from_audio_file(f.read())
-#    f.close()
-#    exit(0)
+    track = Track()
+    track.set_by_audio(sys.argv[1])
+    track.oma_name = '1'
+    track.generate_oma('./')
+    exit(0)
     ##############################################################
     if len(sys.argv) < 2:
         print_help()
@@ -137,9 +134,9 @@ if __name__ == "__main__":
     for track in tracks:
        print(track)
 
-    with open('04CNTINF.DAT', 'wb') as f:
-        f.write(header.tobytes())
-        f.write(obj_pt.tobytes())
-        f.write(obj.tobytes())
-        for track in tracks:
-            f.write(track.tobytes())
+    # with open('04CNTINF.DAT', 'wb') as f:
+    #     f.write(header.tobytes())
+    #     f.write(obj_pt.tobytes())
+    #     f.write(obj.tobytes())
+    #     for track in tracks:
+    #         f.write(track.tobytes())
