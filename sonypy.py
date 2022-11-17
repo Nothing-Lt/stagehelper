@@ -26,8 +26,8 @@ class ObjectPointer():
     def __init__(self, bytestream=None):
         if bytestream is not None:
             self.magic = (bytestream[0:4]).decode('utf-8')
-            self.offset = struct.unpack('>I', bytestream[4:8])[0]
-            self.length = struct.unpack('>I', bytestream[8:12])[0]
+            self.offset = struct.unpack('<I', bytestream[4:8])[0]
+            self.length = struct.unpack('<I', bytestream[8:12])[0]
         else:
             self.magic = 'CNFB'
             self.offset = 32
@@ -43,12 +43,12 @@ class Object():
     def __init__(self, bytestream=None):
         if bytestream is not None:
             self.magic = (bytestream[0:4]).decode('utf-8')
-            self.track_cnt = struct.unpack('>H', bytestream[4:6])[0]
-            self.track_sz = struct.unpack('>H', bytestream[6:8])[0]
+            self.track_cnt = struct.unpack('<H', bytestream[4:6])[0]
+            self.track_sz = struct.unpack('<H', bytestream[6:8])[0]
         else:
             self.magic = 'CNFB'
             self.track_cnt = 0 # amount of record
-            self.track_sz = 0 # size of track 
+            self.track_sz = 0 # size of track, it is (track header + sizeof(all tags))
 
     def tobytes(self):
         return bytes(self.magic, 'utf-8')[0:4] + \
@@ -181,14 +181,14 @@ class Track():
             print('generate %s, but has no oma name' % self.filename)
             return
 
-        f = open(self.filename, 'rb')
-        if f is None:
+        fin = open(self.filename, 'rb')
+        if fin is None:
             print('cannot find %s', self.filename)
             return
 
-        bytestream = f.read()
+        bytestream = fin.read()
         if len(bytestream) < 10:
-            f.close()
+            fin.close()
             return
 
         # print(bytestream)
@@ -224,7 +224,7 @@ class Track():
             return
 
         self.encoding = ((mpeg_head[0] & 0x1e) << 3) + \
-                        ((mpeg_head[1] & 0xf0) << 4)
+                        ((mpeg_head[1] & 0xf0) >> 4)
         mpeg_ver = (mpeg_head[0] & 0x18) >> 3
         layer_ver = (mpeg_head[0] & 0x6) >> 1
         sample_rate_idx = (mpeg_head[1] & 0xc) >> 2
@@ -237,7 +237,7 @@ class Track():
         else:
             sample_rate = SAMPLE_RATE[(mpeg_ver*3)+sample_rate_idx]
             sample_perframe = SAMPLE_PER_FRAME[(mpeg_ver*4)+layer_ver]
-            frame_cnt = (self.time_len * sample_rate) / sample_perframe
+            frame_cnt = int((self.time_len * sample_rate) / sample_perframe)
         print(sample_rate)
         print(sample_perframe)
         print(frame_cnt)
@@ -264,7 +264,7 @@ class Track():
         artist_var = artist_var + bytearray([0] * (32-len(artist_var)))
 
         # album tag, same as tit2
-        album_header = bytes('TPE1', 'utf-8')[0:4] + struct.pack('>I', 32) + bytearray([0,0,2])
+        album_header = bytes('TALB', 'utf-8')[0:4] + struct.pack('>I', 32) + bytearray([0,0,2])
         album_var = bytes(self.album, 'utf-8')[0:16]
         album_var = album_var + bytearray([0] * (32-len(album_var)))
 
@@ -312,10 +312,23 @@ class Track():
         third_header = third_header + struct.pack('>I', self.time_len * 1000)
         third_header = third_header + struct.pack('>I', frame_cnt)
         third_header = third_header + bytearray([0,0,0,0])
-        third_header = bytearray([0] * 48)
+        padding = bytearray([0] * 48)
 
+        oma_data = oma_header + second_header + second_var + third_header + padding
 
-        f.close()
+        # just copy, will do no encoding or decoding things
+        audio_data = bytestream[start_point:]
+
+        fout = open(self.oma_name, 'wb+')
+        if fout is None:
+            print('Failed in open/create %s' % self.oma_name)
+            fin.close()
+            return
+
+        fout.write(oma_data + audio_data)
+
+        fout.close()
+        fin.close()
         
     def set_by_oma(self, oma_name):
         self.oma_name = oma_name

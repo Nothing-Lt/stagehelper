@@ -102,6 +102,7 @@ if __name__ == "__main__":
     track = Track()
     track.set_by_audio(sys.argv[1])
     track.oma_name = '1'
+    track.track_id = 12
     track.generate_oma('./')
     exit(0)
     ##############################################################
