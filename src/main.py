@@ -4,7 +4,10 @@ import logging
 import struct
 
 from sonypy_var import *
-from sonypy import *
+from Header import *
+from ObjectPointer import *
+from Object import *
+from Track import *
 
 def valid_device(device_path):
     if not device_path:
@@ -101,9 +104,21 @@ if __name__ == "__main__":
     ####################### for debug ############################
     track = Track()
     track.set_by_audio(sys.argv[1])
-    track.oma_name = '1'
-    track.track_id = 12
+    track.oma_name = '10000001.OMA'
+    track.track_id = 1
     track.generate_oma('./')
+
+    header = Header()
+    obj_pt = ObjectPointer() 
+    obj = Object()
+    obj.track_cnt = 1
+    obj.track_sz = (128 * 5) + 16
+
+    with open('04CNTINF.DAT', 'wb') as f:
+        f.write(header.tobytes())
+        f.write(obj_pt.tobytes())
+        f.write(obj.tobytes())
+        f.write(track.tobytes())
     exit(0)
     ##############################################################
     if len(sys.argv) < 2:

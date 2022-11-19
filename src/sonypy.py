@@ -4,59 +4,15 @@ import struct
 from sonypy_var import *
 
 # Define 04CNTINF.DAT's header
-class Header():
-    def __init__(self, bytestream=None):
-        if bytestream is not None:
-            self.magic = (bytestream[0:4]).decode('utf-8')
-            self.CTE = bytestream[4:8] # constant number
-            self.op_cnt = bytestream[8]
-        else:
-            self.magic = 'CNIF'
-            self.CTE = struct.pack('I', 257)
-            self.op_cnt = 1 # amount of object pointer
-
-    def tobytes(self):
-        return bytes(self.magic, 'utf-8')[0:4] + \
-                self.CTE + \
-                struct.pack('8B', self.op_cnt, 0, 0, 0, 0, 0, 0, 0)
 
 
-# Define object pointer
-class ObjectPointer():
-    def __init__(self, bytestream=None):
-        if bytestream is not None:
-            self.magic = (bytestream[0:4]).decode('utf-8')
-            self.offset = struct.unpack('<I', bytestream[4:8])[0]
-            self.length = struct.unpack('<I', bytestream[8:12])[0]
-        else:
-            self.magic = 'CNFB'
-            self.offset = 32
-            self.length = 1328
-
-    def tobytes(self):
-        return bytes(self.magic, 'utf-8')[0:4] + \
-                struct.pack('>3I', self.offset, self.length, 0)
 
 
-# Define object
-class Object():
-    def __init__(self, bytestream=None):
-        if bytestream is not None:
-            self.magic = (bytestream[0:4]).decode('utf-8')
-            self.track_cnt = struct.unpack('<H', bytestream[4:6])[0]
-            self.track_sz = struct.unpack('<H', bytestream[6:8])[0]
-        else:
-            self.magic = 'CNFB'
-            self.track_cnt = 0 # amount of record
-            self.track_sz = 0 # size of track, it is (track header + sizeof(all tags))
 
-    def tobytes(self):
-        return bytes(self.magic, 'utf-8')[0:4] + \
-                struct.pack('>2H2I', self.track_cnt, self.track_sz, 0, 0)
 
 class Track():
     def __init__(self):
-        self.ftype = None
+        self.ftype = bytearray([0, 0, 0xff, 0xff])
         self.encoding = 0
         self.time_len = 0
         self.title = ''
@@ -64,7 +20,7 @@ class Track():
         self.album = ''
         self.genre = ''
         self.tag_len = 0
-        self.tag_sz = 0
+        self.tag_sz = 128
         self.oma_name = ''
         self.filename = ''
         self.track_id = 0
@@ -124,7 +80,6 @@ class Track():
                         int(audio_header[9]) + 10
         else:
             start_point = 0
-        print(audio_header)
         print(audio_tag)
         print(start_point)
 
@@ -138,7 +93,6 @@ class Track():
             print('Not a valid file format')
             f.close()
             return
-        print('it is 0xff')
         # go parse the info from audio file
         mpeg_head = bytestream[start_point+1:start_point+4]
         if mpeg_head[0] & 0xe0 != 0xe0:
@@ -167,7 +121,7 @@ class Track():
 
         # skip frame header
         vbr_tag = bytestream[start_point+36:start_point+40]
-        vbr_tag = vbr_tag.decode('utf-8')
+        vbr_tag = vbr_tag.decode('utf-8', "ignore")
         print(vbr_tag)
         is_vbr = False
         if vbr_tag == 'XING':
@@ -201,7 +155,6 @@ class Track():
                         int(audio_header[9]) + 10
         else:
             start_point = 0
-        print(audio_header)
         print(audio_tag)
         print(start_point)
 
@@ -215,7 +168,6 @@ class Track():
             print('Not a valid file format')
             f.close()
             return
-        print('it is 0xff')
         # go parse the info from audio file
         mpeg_head = bytestream[start_point+1:start_point+4]
         if mpeg_head[0] & 0xe0 != 0xe0:
@@ -244,7 +196,7 @@ class Track():
 
         # skip frame header
         vbr_tag = bytestream[start_point+36:start_point+40]
-        vbr_tag = vbr_tag.decode('utf-8')
+        vbr_tag = vbr_tag.decode('utf-8', "ignore")
         print(vbr_tag)
         is_vbr = False
         if vbr_tag == 'XING':
@@ -274,9 +226,9 @@ class Track():
         genre_var = genre_var + bytearray([0] * (32-len(genre_var)))
 
         # track number tag
-        track_nr_header = bytes('TXXX', 'utf-8')[0:4] + struct.pack('>I', 16) + bytearray([0,0,2])
+        track_nr_header = bytes('TXXX', 'utf-8')[0:4] + struct.pack('>I', 32) + bytearray([0,0,2])
         track_nr_var = bytes('OMG_TRACK ','utf-8')[0:10] + struct.pack('H', self.track_id)
-        track_nr_var = track_nr_var + bytearray([0] * (16-len(track_nr_var)))
+        track_nr_var = track_nr_var + bytearray([0] * (32-len(track_nr_var)))
 
         # transfer date tag
         date_header = bytes('TXXX','utf-8')[0:4] + struct.pack('>I', 32) + bytearray([0,0,2])
@@ -284,9 +236,9 @@ class Track():
         date_var = date_var + bytearray([0] * (32-len(date_var)))
 
         # track len tag
-        track_len_head = bytes('TLEN','utf-8')[0:4] + struct.pack('>I', 16) + bytearray([0,0,2])
+        track_len_head = bytes('TLEN','utf-8')[0:4] + struct.pack('>I', 32) + bytearray([0,0,2])
         track_len_var = bytes(('%d' % (self.time_len * 1000)), 'utf-8')
-        track_len_var = track_len_var + bytearray([0] * (16-len(track_len_var)))       
+        track_len_var = track_len_var + bytearray([0] * (32-len(track_len_var)))
 
         # assemble to have a oma_header
         oma_header = idv2_header + \
@@ -297,7 +249,7 @@ class Track():
                     track_nr_header + track_nr_var + \
                     date_header + date_var + \
                     track_len_head + track_len_var
-        oma_header = oma_header + bytearray([0] * (3062-len(track_len_var)))
+        oma_header = oma_header + bytearray([0] * (3072-len(oma_header)))
 
         second_header = bytes('EA3', 'utf-8')[0:3] + bytearray([2, 0, 0x60, 0xff, 0xff, 0, 0, 0, 0, 1, 0xf, 0x50, 0])
         second_var = bytearray([0, 4, 0, 0, 0, 1, 2, 3, 0xc8, 0xd8, 0x36, 0xd8, 0x11, 0x22, 0x33 ,0x44])
@@ -326,10 +278,9 @@ class Track():
             return
 
         fout.write(oma_data + audio_data)
-
         fout.close()
         fin.close()
-        
+
     def set_by_oma(self, oma_name):
         self.oma_name = oma_name
         return
