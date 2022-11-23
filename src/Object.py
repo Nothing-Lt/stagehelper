@@ -1,5 +1,7 @@
 import struct
 
+from Track import Track
+
 # Define object
 class Object():
     def __init__(self, bytestream=None):
@@ -10,7 +12,14 @@ class Object():
         else:
             self.magic = 'CNFB'
             self.track_cnt = 0 # amount of record
-            self.track_sz = 0 # size of track, it is (track header + sizeof(all tags))
+            self.track_sz = (128 * 5) + 16 # (track header + sizeof(all tags))
+        
+        self.tracks = []
+
+    def add_track(self, new_track):
+        if isinstance(new_track, Track):
+            self.tracks.append(new_track)
+            self.track_cnt = len(self.tracks)
 
     def tobytes(self):
         return bytes(self.magic, 'utf-8')[0:4] + \

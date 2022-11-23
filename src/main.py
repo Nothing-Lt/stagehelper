@@ -1,4 +1,5 @@
 import sys
+from os.path import isdir
 from os import path, mkdir
 import logging
 import struct
@@ -101,25 +102,6 @@ def print_help():
 if __name__ == "__main__":
     logging.basicConfig(filename='sonypy.log', level=logging.WARNING)
 
-    ####################### for debug ############################
-    track = Track(sys.argv[1])
-    track.oma_name = '10000001.OMA'
-    track.track_id = 1
-    track.generate_oma('./')
-
-    header = Header()
-    obj_pt = ObjectPointer() 
-    obj = Object()
-    obj.track_cnt = 1
-    obj.track_sz = (128 * 5) + 16
-
-    with open('04CNTINF.DAT', 'wb') as f:
-        f.write(header.tobytes())
-        f.write(obj_pt.tobytes())
-        f.write(obj.tobytes())
-        f.write(track.tobytes())
-    exit(0)
-    ##############################################################
     if len(sys.argv) < 2:
         print_help()
         exit(1)
@@ -129,7 +111,7 @@ if __name__ == "__main__":
     # check the device is valid device or not
     ret = valid_device(dev_path)
     if (ret == 'wrongdev') :
-        create_file = input('Restore the filesystem?[Y/n]')
+        create_file = input('Restore the Walkman filesystem?[Y/n]')
         if create_file == 'Y' or create_file == 'y':
             if not path.exists(dev_path + AUDIO_P):
                 mkdir(dev_path + AUDIO_P)
@@ -139,19 +121,45 @@ if __name__ == "__main__":
             obj = Object()
             f.write(header.tobytes() + obj_pt.tobytes() + obj.tobytes())
             f.close()
-
     elif (ret == 'nodev') or (ret == 'empty'):
         print(ret)
         exit(2)
 
     print('Found walkman')
-    header, obj_pt, obj, tracks = read_all_tracks(dev_path)
-    for track in tracks:
-       print(track)
+    
+    track = Track(sys.argv[2])
 
-    # with open('04CNTINF.DAT', 'wb') as f:
-    #     f.write(header.tobytes())
-    #     f.write(obj_pt.tobytes())
-    #     f.write(obj.tobytes())
-    #     for track in tracks:
-    #         f.write(track.tobytes())
+    header = Header()
+    obj_pt = ObjectPointer() 
+    obj = Object()
+    obj.add_track(track)
+    
+    idx = 1
+    tracks = obj.tracks
+    for track in tracks:
+
+        dir_name = '%s%s/10F%02x' % (dev_path, AUDIO_P, (idx >> 8))
+        track.oma_name = '1%07x.OMA' % idx
+
+        if not isdir(dir_name):
+            mkdir(dir_name)
+        track.generate_oma(dir_name)
+
+        idx = idx + 1
+        
+    f = open(dev_path + AUDIO_P + '/' + CNTINF_F, 'wb+')
+    track_bytestream = bytearray()
+    for track in tracks:
+        track_bytestream = track_bytestream + track.tobytes()
+    f.write(header.tobytes())
+    f.write(obj_pt.tobytes())
+    f.write(obj.tobytes())
+    f.write(track_bytestream)
+    f.close()
+    #with open('04CNTINF.DAT', 'wb') as f:
+    #    f.write(header.tobytes())
+    #    f.write(obj_pt.tobytes())
+    #    f.write(obj.tobytes())
+    #    f.write(track.tobytes())
+    #exit(0)
+    ##############################################################

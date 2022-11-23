@@ -113,6 +113,10 @@ class Track():
         print(self.genre)
 
     def generate_oma(self, target_path):
+        if not path.isdir(target_path):
+            print(target_path)
+            return
+    
         if len(self.oma_name) <=0 :
             print('generate %s, but has no oma name' % self.filename)
             return
@@ -253,7 +257,7 @@ class Track():
         # just copy, will do no encoding or decoding things
         audio_data = bytestream[start_point:]
 
-        fout = open(self.oma_name, 'wb+')
+        fout = open(target_path+ '/' + self.oma_name, 'wb+')
         if fout is None:
             print('Failed in open/create %s' % self.oma_name)
             fin.close()
