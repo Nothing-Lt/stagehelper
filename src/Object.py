@@ -14,6 +14,7 @@ class Object():
             self.track_cnt = 0 # amount of record
             self.track_sz = (128 * 5) + 16 # (track header + sizeof(all tags))
         
+        self.padding = bytearray([0] * 8)
         self.tracks = []
 
     def add_track(self, new_track):
@@ -23,4 +24,4 @@ class Object():
 
     def tobytes(self):
         return bytes(self.magic, 'utf-8')[0:4] + \
-                struct.pack('>2H2I', self.track_cnt, self.track_sz, 0, 0)
+                struct.pack('>2H', self.track_cnt, self.track_sz) + self.padding
