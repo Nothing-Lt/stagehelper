@@ -102,8 +102,7 @@ if __name__ == "__main__":
     logging.basicConfig(filename='sonypy.log', level=logging.WARNING)
 
     ####################### for debug ############################
-    track = Track()
-    track.set_by_audio(sys.argv[1])
+    track = Track(sys.argv[1])
     track.oma_name = '10000001.OMA'
     track.track_id = 1
     track.generate_oma('./')
