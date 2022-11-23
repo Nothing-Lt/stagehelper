@@ -1,25 +1,38 @@
 import struct
 
+from os import path
+
+from mutagen.easyid3 import EasyID3 as id3
+
 from sonypy_var import *
 
 class Track():
-    def __init__(self):
+    def __init__(self, audiofile=None):
+        
+        # set the audio based info
+        if audiofile is None:
+            self.time_len = 0
+            self.title = ''
+            self.author = ''
+            self.album = ''
+            self.genre = ''
+            self.oma_name = ''
+            self.filename = ''
+            self.track_id = 0
+        else:
+            self.filename = audiofile
+            self.fill_info_by_audio(audiofile)
+            self.oma_name = ''
+        
+        # set the common info
         self.ftype = bytearray([0, 0, 0xff, 0xff])
         self.encoding = 0
-        self.time_len = 0
-        self.title = ''
-        self.author = ''
-        self.album = ''
-        self.genre = ''
-        self.tag_len = 0
+        self.tag_len = 5
         self.tag_sz = 128
         self.oma_name = ''
-        self.filename = ''
-        self.track_id = 0
         self.sync = False
-    # def __init__(self, bytestream=None)
 
-    def fill_in_track(self, track_id, bytestream):
+    def fill_info_by_track(self, track_id, bytestream):
         self.track_id = track_id
         self.ftype = bytestream[0:4]
         self.encoding = struct.unpack('>I', bytestream[4:8])[0]
@@ -27,7 +40,7 @@ class Track():
         self.tag_len = struct.unpack('>H', bytestream[12:14])[0]
         self.tag_sz = struct.unpack('>H', bytestream[14:16])[0]
 
-    def fill_in_tags(self, bytestream):        
+    def fill_info_by_tags(self, bytestream):        
         # decode bytestream
         tag_type = bytestream[0:4].decode('utf-8')
         tag_encoding = bytestream[4:6]
@@ -45,82 +58,59 @@ class Track():
         else:
             return False, tag_type, tag_val
         return True, tag_type, tag_val
-    # def fill_in_tags(self, bytestream)
 
-    def bind_with_file(self, filename):
+    def fill_info_by_audio(self, filename):
         self.filename = filename
-    # def bind_with_file(self, filename)
+        tags = id3(filename)
 
-    def set_by_audio(self, filename):
-        f = open(filename, 'rb')
-        if f is None:
-            return
+        # get the title
+        try:
+            self.title = tags['title'][0]
+        except KeyError: 
+            self.title = path.basename(filename)
+        
+        # get album
+        try:
+            self.album = tags['album'][0]
+        except KeyError:
+            self.album = 'Unknown'
+        
+        # get time length
+        try:
+            self.time_len = int(tags['length'][0]) * 1000
+        except Exception:
+            self.time_len = 0
 
-        self.filename = filename
-        bytestream = f.read()
-        if len(bytestream) < 10:
-            f.close()
-            return
+        # get track number
+        try:
+            self.track_id = tags['tracknumber'][0]
+        except KeyError:
+            self.track_id = 1
 
-        # print(bytestream)
-        audio_header = bytestream[0:10]
-        audio_tag = str(audio_header[0:3].decode('utf-8'))
-        if audio_tag == 'ID3': 
-            start_point = (int(audio_header[6]) << 21) + \
-                        (int(audio_header[7]) << 14) + \
-                        (int(audio_header[8]) << 7) + \
-                        int(audio_header[9]) + 10
-        else:
-            start_point = 0
-        print(audio_tag)
-        print(start_point)
+        # get author
+        try:
+            self.author = tags['author'][0]
+        except KeyError:
+            self.author = 'Unknown'
 
-        # skip 0s
-        while True:
-            if bytestream[start_point] != 0:
-                break;
-            start_point += 1  
+        # get genre
+        try:
+            self.genre = tags['genre'][0]
+        except KeyError:
+            self.genre = 'Blue'
 
-        if bytestream[start_point] != 0xff:
-            print('Not a valid file format')
-            f.close()
-            return
-        # go parse the info from audio file
-        mpeg_head = bytestream[start_point+1:start_point+4]
-        if mpeg_head[0] & 0xe0 != 0xe0:
-            print('invalid encoding')
-            f.close()
-            return
+        # get date            
+        try:
+            self.date = tags['date'][0]
+        except KeyError:
+            self.date = '2001/01/01'
 
-        self.encoding = ((mpeg_head[0] & 0x1e) << 3) + \
-                        ((mpeg_head[1] & 0xf0) << 4)
-        mpeg_ver = (mpeg_head[0] & 0x18) >> 3
-        layer_ver = (mpeg_head[0] & 0x6) >> 1
-        sample_rate_idx = (mpeg_head[1] & 0xc) >> 2
-        print(mpeg_ver)
-        print(layer_ver)
-        print(sample_rate_idx)
-
-        if (((mpeg_ver * 3) + sample_rate_idx) >= 12) or (((mpeg_ver * 3) + layer_ver) >= 16):
-            frame_cnt = 0
-        else:
-            sample_rate = SAMPLE_RATE[(mpeg_ver*3)+sample_rate_idx]
-            sample_perframe = SAMPLE_PER_FRAME[(mpeg_ver*4)+layer_ver]
-            frame_cnt = (self.time_len * sample_rate) / sample_perframe
-        print(sample_rate)
-        print(sample_perframe)
-        print(frame_cnt)
-
-        # skip frame header
-        vbr_tag = bytestream[start_point+36:start_point+40]
-        vbr_tag = vbr_tag.decode('utf-8', "ignore")
-        print(vbr_tag)
-        is_vbr = False
-        if vbr_tag == 'XING':
-            is_vbr = True
-
-        f.close()
-        # TODO : a lot ...
+        print(self.title)
+        print(self.album)
+        print(self.time_len)
+        print(self.track_id)
+        print(self.author)
+        print(self.genre)
 
     def generate_oma(self, target_path):
         if len(self.oma_name) <=0 :
@@ -137,7 +127,6 @@ class Track():
             fin.close()
             return
 
-        # print(bytestream)
         audio_header = bytestream[0:10]
         audio_tag = str(audio_header[0:3].decode('utf-8'))
         if audio_tag == 'ID3': 
@@ -160,6 +149,7 @@ class Track():
             print('Not a valid file format')
             f.close()
             return
+
         # go parse the info from audio file
         mpeg_head = bytestream[start_point+1:start_point+4]
         if mpeg_head[0] & 0xe0 != 0xe0:
