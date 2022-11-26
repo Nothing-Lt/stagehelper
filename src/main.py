@@ -71,7 +71,7 @@ def get_track(f):
         filled, tag_type, tag_val = track.fill_in_tags(raw_tag)
         if not filled:
              logging.warning('track %d-tag tag_type unknown %s', i, tag_type)
-        
+
         # bind this track with actual file
         track.bind_with_file('dummy.dat')
 
@@ -106,17 +106,17 @@ def write_00GTRLST(target_path):
     header.magic = 'GTLT'
     header.CTE = bytearray([1,1,0,0])
     header.op_cnt = 2
-	
+
     obj_pt1 = ObjectPointer()
     obj_pt1.magic = 'SYSB'
     obj_pt1.offset = 0x30
     obj_pt1.length = 0x70
-	
+
     obj_pt2 = ObjectPointer()
     obj_pt2.magic = 'GTLB'
     obj_pt2.offset = 0xA0
     obj_pt2.length = 0xAB0
-	
+
     obj1 = Object()
     obj1.magic = 'SYSB'
     obj1.track_cnt = 1
@@ -133,29 +133,57 @@ def write_00GTRLST(target_path):
     first_blk = bytearray([0,1,0,1] + [0] *12)
     first_blk = first_blk + bytearray([0,1] + [0] * 14)
     first_blk = first_blk + bytearray([0] * 48)
-	
+
     second_blk = bytearray([0,2,0,3] + [0] * 12)
     second_blk = second_blk + bytearray([0,1,0,0]) + bytes('TPE1','utf-8')[0:4] + bytearray([0] * 8)
     second_blk = second_blk + bytearray([0] * 48)
-	
+
     third_blk = bytearray([0,3,0,3] + [0] * 12)
     third_blk = third_blk + bytearray([0,1,0,0]) + bytes('TALB','utf-8')[0:4] + bytearray([0] * 8)
     third_blk = third_blk + bytearray([0] * 48)
-	
+
     fourth_blk = bytearray([0,4,0,3] + [0] * 12)
     fourth_blk = fourth_blk + bytearray([0,1,0,0]) + bytes('TCON','utf-8')[0:4] + bytearray([0] * 8)
     fourth_blk = fourth_blk + bytearray([0] * 48)
-	
+
     fifth_blk = bytearray([0,0x22,0,2] + [0] * 12)
     fifth_blk = fifth_blk + bytearray([0] * 64)
-	
+
     blk_data = first_blk + second_blk + third_blk + fourth_blk + fifth_blk
-	
+
     for j in range(5,34):
         blk = bytearray([0,j] + [0] * 78)
         blk_data = blk_data + blk
 
     f.write(header.tobytes() + obj_pt1.tobytes() + obj_pt2.tobytes() + obj1.tobytes() + obj1_blk + obj2.tobytes() + blk_data)
+    f.close()
+
+
+def write_03GINF22(target_path):
+
+    filepath = '%s/%s' % (target_path, '03GINF22.DAT') 
+    f = open(filepath, 'wb+')
+    if f is None:
+        print('Cannot get file %s' % filepath)
+        return
+
+    header = Header()
+    header.magic = 'GPIF'
+    header.CTE = bytearray([1,1,0,0])
+    header.op_cnt = 1
+
+    obj_pt = ObjectPointer()
+    obj_pt.magic = 'GPFB'
+    obj_pt.offset = 0x20
+    obj_pt.length = 16
+
+    obj = Object()
+    obj.magic = 'GPFB'
+    obj.track_cnt = 0
+    obj.track_sz = 784
+    obj.padding = struct.pack('<2I', 0, 0)
+
+    f.write(header.tobytes() + obj_pt.tobytes() + obj.tobytes())
     f.close()
 
 
@@ -191,14 +219,14 @@ if __name__ == "__main__":
         exit(2)
 
     print('Found walkman')
-    
+
     track = Track(sys.argv[2])
 
     header = Header()
     obj_pt = ObjectPointer() 
     obj = Object()
     obj.add_track(track)
-    
+
     idx = 1
     tracks = obj.tracks
     for track in tracks:
@@ -211,7 +239,7 @@ if __name__ == "__main__":
         track.generate_oma(dir_name)
 
         idx = idx + 1
-        
+
     f = open(dev_path + AUDIO_P + '/' + CNTINF_F, 'wb+')
     track_bytestream = bytearray()
     for track in tracks:
@@ -221,5 +249,6 @@ if __name__ == "__main__":
     f.write(obj.tobytes())
     f.write(track_bytestream)
     f.close()
-    
+
     write_00GTRLST(dev_path+AUDIO_P)
+    write_03GINF22(dev_path+AUDIO_P)
