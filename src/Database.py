@@ -101,7 +101,7 @@ class Database():
         f.close()
 
 
-    def write_01TREEXX(self, cat, tracks, id, target_path):
+    def write_01TREEXX(self, cat, tracks, attr, type_id, target_path):
         track_cnt = len(tracks)
         cat_cnt = len(cat)
 
@@ -122,15 +122,64 @@ class Database():
 
         obj = Object()
         obj.magic = 'GPLB'
-        obj.count = cat_cnt
-        obj.size = 8
-        obj.padding[0] = obj.count
-        obj.padding[1] = 0
+        obj.track_cnt = cat_cnt
+        obj.track_sz = 8
+        obj.padding = struct.pack('>2I', obj.track_cnt, 0)
+        # obj.padding[0] = obj.track_cnt
+        # obj.padding[1] = 0
 
-        # id 1 and 3 for album, 2 for artist, 4 for genre
+        index = 1
+        indexTPLB = 1
 
-        return None
+        data_blk = bytearray()
+        for e in cat:
+            blk = struct.pack('<H', index)
+            blk += struct.pack('>H', 0x100)
+            blk += struct.pack('<H', indexTPLB)
+            blk += struct.pack('<H', 0)
+            data_blk += blk
 
+            # if (type_id == 1) or (type_id == 3):
+            for track in tracks[indexTPLB-1:]:
+                if str(getattr(track, attr)) != e:
+                    break
+
+            indexTPLB = tracks.index(track) - 1
+            index += 1
+
+        index -= 1
+        padding = bytearray([0] * (16384 - (index * 8)))
+
+        obj2 = Object()
+        obj2.magic = 'TPLB'
+        obj2.track_cnt = obj2.track_cnt
+        obj2.track_sz = 2
+        obj2.padding = struct.pack('>2I', obj2.track_cnt, 0)
+
+        index = 0
+        idx_blk = bytearray()
+        for idx, track in enumerate(tracks):
+            blk = struct.pack('>H', idx)
+            idx_blk += blk
+            index += 1
+
+        while (index % 8) != 0:
+            blk = struct.pack('>H', 0)
+            idx_blk += blk
+            index += 1
+
+        all_blk = header.tobytes() + \
+                    obj_pt1.tobytes() + obj_pt2.tobytes() + \
+                    obj.tobytes() + data_blk + padding + \
+                    obj2.tobytes() + idx_blk
+        
+        filepath = '%s01TREE%02d.DAT' % (target_path, type_id)
+        f = open(filepath, 'wb+')
+        if f is None:
+            print('Failed open %s' % filepath)
+            return
+        f.write(all_blk)
+        f.close()        
 
     def get_artist_list(self, tracks):
         artists = []

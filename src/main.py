@@ -156,9 +156,13 @@ if __name__ == "__main__":
 
     db = Database()
     artist_lst = db.get_artist_list(obj.tracks)
+    db.write_01TREEXX(artist_lst, obj.tracks, 'author', 2, dev_path+AUDIO_P+'/')
     album_lst = db.get_album_list(obj.tracks)
+    db.write_01TREEXX(album_lst, obj.tracks, 'album', 1, dev_path+AUDIO_P+'/')
+    db.write_01TREEXX(album_lst, obj.tracks, 'album', 3, dev_path+AUDIO_P+'/')
     genre_lst = db.get_genre_list(obj.tracks)
-
+    db.write_01TREEXX(genre_lst, obj.tracks, 'genre', 4, dev_path+AUDIO_P+'/')
+    
     exit(0)
 
     track = Track(audio_f)
