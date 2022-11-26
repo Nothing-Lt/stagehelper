@@ -115,19 +115,13 @@ if __name__ == "__main__":
     else:
         audio_f = sys.argv[2]
 
+    db = Database()
     # check the device is valid device or not
-    ret = valid_device(dev_path)
+    ret = db.set_device(dev_path)
     if (ret == 'wrongdev') :
         create_file = input('Restore the Walkman filesystem?[Y/n]')
         if create_file == 'Y' or create_file == 'y':
-            if not path.exists(dev_path + AUDIO_P):
-                mkdir(dev_path + AUDIO_P)
-            f = open(dev_path + AUDIO_P + '/' + CNTINF_F, 'wb+')
-            header = Header()
-            obj_pt = ObjectPointer()
-            obj = Object()
-            f.write(header.tobytes() + obj_pt.tobytes() + obj.tobytes())
-            f.close()
+            db.restore_filesystem()
     elif (ret == 'nodev') or (ret == 'empty'):
         print(ret)
         exit(2)
@@ -154,15 +148,15 @@ if __name__ == "__main__":
         need_size = getsize(audio_f)
         print('With the file %s need %dMB' % (audio_f, ceil(need_size/(2**20))))
 
-    db = Database()
     artist_lst = db.get_artist_list(obj.tracks)
-    db.write_01TREEXX(artist_lst, obj.tracks, 'author', 2, dev_path+AUDIO_P+'/')
+    db.write_01TREEXX(artist_lst, obj.tracks, 'author', 2)
     album_lst = db.get_album_list(obj.tracks)
-    db.write_01TREEXX(album_lst, obj.tracks, 'album', 1, dev_path+AUDIO_P+'/')
-    db.write_01TREEXX(album_lst, obj.tracks, 'album', 3, dev_path+AUDIO_P+'/')
+    db.write_01TREEXX(album_lst, obj.tracks, 'album', 1)
+    db.write_01TREEXX(album_lst, obj.tracks, 'album', 3)
     genre_lst = db.get_genre_list(obj.tracks)
-    db.write_01TREEXX(genre_lst, obj.tracks, 'genre', 4, dev_path+AUDIO_P+'/')
-    
+    db.write_01TREEXX(genre_lst, obj.tracks, 'genre', 4)
+    db.write_00GTRLST()
+    db.write_03GINF22()
     exit(0)
 
     track = Track(audio_f)
@@ -195,5 +189,3 @@ if __name__ == "__main__":
     f.write(track_bytestream)
     f.close()
 
-    db.write_00GTRLST(dev_path+AUDIO_P)
-    db.write_03GINF22(dev_path+AUDIO_P)

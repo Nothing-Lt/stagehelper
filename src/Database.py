@@ -9,10 +9,37 @@ from Track import *
 
 class Database():
     def __init__(self):
+        self.device_path = ''
+        self.audio_path = ''
         return
 
+    def set_device(self, device_path):
+        if not device_path:
+            return 'empty'
 
-    def write_00GTRLST(self, target_path):
+        if path.exists(device_path):
+            # check the omgaudio/cntinfo.dat
+            self.device_path = device_path
+            self.audio_path = device_path + '/' + AUDIO_P
+            if path.exists(device_path+'/'+AUDIO_P+'/'+CNTINF_F):
+                return 'valid'
+            else: 
+                return 'wrongdev'
+        else:
+            return 'nodev'
+
+    def restore_filesystem(self):
+        if not path.exists(self.audio_path):
+            mkdir(self.audio_path)
+
+        f = open(self.audio_path + '/' + CNTINF_F, 'wb+')
+        header = Header()
+        obj_pt = ObjectPointer()
+        obj = Object()
+        f.write(header.tobytes() + obj_pt.tobytes() + obj.tobytes())
+        f.close()
+
+    def write_00GTRLST(self):
         header = Header()
         header.magic = 'GTLT'
         header.CTE = bytearray([1,1,0,0])
@@ -66,7 +93,7 @@ class Database():
             blk = bytearray([0,j] + [0] * 78)
             blk_data = blk_data + blk
 
-        filepath = '%s/%s' % (target_path, '00GTRLST.DAT') 
+        filepath = '%s/%s' % (self.audio_path, '00GTRLST.DAT') 
         f = open(filepath, 'wb+')
         if f is None:
             print('Cannot get file %s' % filepath)
@@ -75,7 +102,7 @@ class Database():
         f.close()
 
 
-    def write_03GINF22(self, target_path):
+    def write_03GINF22(self):
         header = Header()
         header.magic = 'GPIF'
         header.CTE = bytearray([1,1,0,0])
@@ -92,7 +119,7 @@ class Database():
         obj.track_sz = 784
         obj.padding = struct.pack('<2I', 0, 0)
 
-        filepath = '%s/%s' % (target_path, '03GINF22.DAT') 
+        filepath = '%s/%s' % (self.audio_path, '03GINF22.DAT') 
         f = open(filepath, 'wb+')
         if f is None:
             print('Cannot get file %s' % filepath)
@@ -101,7 +128,7 @@ class Database():
         f.close()
 
 
-    def write_01TREEXX(self, cat, tracks, attr, type_id, target_path):
+    def write_01TREEXX(self, cat, tracks, attr, type_id):
         track_cnt = len(tracks)
         cat_cnt = len(cat)
 
@@ -171,7 +198,7 @@ class Database():
                     obj.tobytes() + data_blk + padding + \
                     obj2.tobytes() + idx_blk
         
-        filepath = '%s01TREE%02d.DAT' % (target_path, type_id)
+        filepath = '%s/01TREE%02d.DAT' % (self.audio_path, type_id)
         f = open(filepath, 'wb+')
         if f is None:
             print('Failed open %s' % filepath)
