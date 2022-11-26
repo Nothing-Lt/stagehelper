@@ -1,6 +1,7 @@
 import sys
 from os.path import isdir, getsize
-from os import path, mkdir, scandir
+from os import path, mkdir, scandir, listdir
+from math import ceil
 import logging
 import struct
 
@@ -232,11 +233,15 @@ if __name__ == "__main__":
         player.free/(2**20), player.free/player.total))
 
     if 'audio_dir' in locals():
-        need_size = scandir(audio_dir)
-        print('With the file in %s need %dMB' % (audio_dir, need_size/(2**20)))
+        need_size = 0
+        entries = scandir(audio_dir)
+        for entry in entries:
+            if entry.name.endswith('.mp3'):
+                need_size += entry.stat(follow_symlinks=False).st_size
+        print('With the file in %s need %dMB' % (audio_dir, ceil(need_size/(2**20))))
     else:
         need_size = getsize(audio_f)
-        print('With the file %s need %dMB' % (audio_f, need_size/(2**20)))
+        print('With the file %s need %dMB' % (audio_f, ceil(need_size/(2**20))))
 
     track = Track(audio_f)
 
