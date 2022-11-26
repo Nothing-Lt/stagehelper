@@ -207,10 +207,10 @@ def write_01TREEXX(cat, tracks, id, target_path):
 
     obj = Object()
     obj.magic = 'GPLB'
-    obj.count = cat_cnt;
-	obj.size = 8;
-	obj.padding[0] = obj.count;
-	obj.padding[1] = 0;
+    obj.count = cat_cnt
+    obj.size = 8
+    obj.padding[0] = obj.count
+    obj.padding[1] = 0
 
 
     
@@ -222,6 +222,7 @@ def get_artist_list(tracks):
     for track in tracks:
         if track.author not in artists:
             artists.append(track.author)
+    artists.sort()
     return artists
 
 
@@ -230,6 +231,7 @@ def get_album_list(tracks):
     for track in tracks:
         if track.album not in albums:
             albums.append(track.album)
+    albums.sort()
     return albums
 
 
@@ -238,7 +240,25 @@ def get_genre_list(tracks):
     for track in tracks:
         if track.genre not in genres:
             genres.append(track.genre)
+    genres.sort()
     return genres
+
+
+def sort_track(anylist, tracks, attr):
+    tracks_lst = [[] for i in range(len(anylist))]
+
+    for track in tracks:
+        for idx, ele in enumerate(anylist):
+            track_attr = str(getattr(track, attr))
+            if track_attr == ele:
+                break
+        tracks_lst[idx].append(track)
+
+    for tracks in tracks_lst:
+        tracks.sort(key=lambda x : x.track_id)
+
+    sorted_tracks = [track for tracks in tracks_lst for track in tracks]
+    return sorted_tracks
 
 
 def print_help():
@@ -298,19 +318,11 @@ if __name__ == "__main__":
         need_size = getsize(audio_f)
         print('With the file %s need %dMB' % (audio_f, ceil(need_size/(2**20))))
 
-    print(get_artist_list(obj.tracks))
-    print(get_album_list(obj.tracks))
-    print(get_genre_list(obj.tracks))
+    artist_lst = get_artist_list(obj.tracks)
+    album_lst = get_album_list(obj.tracks)
+    genre_lst = get_genre_list(obj.tracks)
 
     exit(0)
-
-    # tracks = []
-    # if 'audio_dir' in locals():
-    #     entries = scandir(audio_dir)
-    #     for file in files:
-    #         if file.name.endswith('.mp3'):
-    #             tracks.append(Track(file))
-    #     exit(0)
 
     track = Track(audio_f)
 
