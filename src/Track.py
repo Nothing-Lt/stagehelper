@@ -105,12 +105,12 @@ class Track():
         except KeyError:
             self.date = '2001/01/01'
 
-        print(self.title)
-        print(self.album)
-        print(self.time_len)
-        print(self.track_id)
-        print(self.author)
-        print(self.genre)
+        # print(self.title)
+        # print(self.album)
+        # print(self.time_len)
+        # print(self.track_id)
+        # print(self.author)
+        # print(self.genre)
 
     def generate_oma(self, target_path):
         if not path.isdir(target_path):
@@ -140,8 +140,8 @@ class Track():
                         int(audio_header[9]) + 10
         else:
             start_point = 0
-        print(audio_tag)
-        print(start_point)
+        # print(audio_tag)
+        # print(start_point)
 
         # skip 0s
         while True:
@@ -166,9 +166,9 @@ class Track():
         mpeg_ver = (mpeg_head[0] & 0x18) >> 3
         layer_ver = (mpeg_head[0] & 0x6) >> 1
         sample_rate_idx = (mpeg_head[1] & 0xc) >> 2
-        print(mpeg_ver)
-        print(layer_ver)
-        print(sample_rate_idx)
+        # print(mpeg_ver)
+        # print(layer_ver)
+        # print(sample_rate_idx)
 
         if (((mpeg_ver * 3) + sample_rate_idx) >= 12) or (((mpeg_ver * 3) + layer_ver) >= 16):
             frame_cnt = 0
@@ -176,14 +176,14 @@ class Track():
             sample_rate = SAMPLE_RATE[(mpeg_ver*3)+sample_rate_idx]
             sample_perframe = SAMPLE_PER_FRAME[(mpeg_ver*4)+layer_ver]
             frame_cnt = int((self.time_len * sample_rate) / sample_perframe)
-        print(sample_rate)
-        print(sample_perframe)
-        print(frame_cnt)
+        # print(sample_rate)
+        # print(sample_perframe)
+        # print(frame_cnt)
 
         # skip frame header
         vbr_tag = bytestream[start_point+36:start_point+40]
         vbr_tag = vbr_tag.decode('utf-8', "ignore")
-        print(vbr_tag)
+        # print(vbr_tag)
         is_vbr = False
         if vbr_tag == 'XING':
             is_vbr = True

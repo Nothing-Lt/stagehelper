@@ -98,13 +98,6 @@ def read_all_tracks(device_path):
 
 
 def write_00GTRLST(target_path):
-
-    filepath = '%s/%s' % (target_path, '00GTRLST.DAT') 
-    f = open(filepath, 'wb+')
-    if f is None:
-        print('Cannot get file %s' % filepath)
-        return
-
     header = Header()
     header.magic = 'GTLT'
     header.CTE = bytearray([1,1,0,0])
@@ -158,18 +151,16 @@ def write_00GTRLST(target_path):
         blk = bytearray([0,j] + [0] * 78)
         blk_data = blk_data + blk
 
+    filepath = '%s/%s' % (target_path, '00GTRLST.DAT') 
+    f = open(filepath, 'wb+')
+    if f is None:
+        print('Cannot get file %s' % filepath)
+        return
     f.write(header.tobytes() + obj_pt1.tobytes() + obj_pt2.tobytes() + obj1.tobytes() + obj1_blk + obj2.tobytes() + blk_data)
     f.close()
 
 
 def write_03GINF22(target_path):
-
-    filepath = '%s/%s' % (target_path, '03GINF22.DAT') 
-    f = open(filepath, 'wb+')
-    if f is None:
-        print('Cannot get file %s' % filepath)
-        return
-
     header = Header()
     header.magic = 'GPIF'
     header.CTE = bytearray([1,1,0,0])
@@ -186,8 +177,68 @@ def write_03GINF22(target_path):
     obj.track_sz = 784
     obj.padding = struct.pack('<2I', 0, 0)
 
+    filepath = '%s/%s' % (target_path, '03GINF22.DAT') 
+    f = open(filepath, 'wb+')
+    if f is None:
+        print('Cannot get file %s' % filepath)
+        return
     f.write(header.tobytes() + obj_pt.tobytes() + obj.tobytes())
     f.close()
+
+
+def write_01TREEXX(cat, tracks, id, target_path):
+    track_cnt = len(tracks)
+    cat_cnt = len(cat)
+
+    header = Header()
+    header.magic = 'TREE'
+    header.CTE = bytearray([1,1,0,0])
+    header.op_cnt = 2
+
+    obj_pt1 = ObjectPointer()
+    obj_pt1.magic = 'GPLB'
+    obj_pt1.offset = 0x30
+    obj_pt1.length = 16400
+
+    obj_pt2 = ObjectPointer()
+    obj_pt2.magic = 'TPLB'
+    obj_pt2.offset = 0x4040
+    obj_pt2.length = (16+ (track_cnt * 2) + (16 - (track_cnt * 2) % 16))
+
+    obj = Object()
+    obj.magic = 'GPLB'
+    obj.count = cat_cnt;
+	obj.size = 8;
+	obj.padding[0] = obj.count;
+	obj.padding[1] = 0;
+
+
+    
+    return None
+
+
+def get_artist_list(tracks):
+    artists = []
+    for track in tracks:
+        if track.author not in artists:
+            artists.append(track.author)
+    return artists
+
+
+def get_album_list(tracks):
+    albums = []
+    for track in tracks:
+        if track.album not in albums:
+            albums.append(track.album)
+    return albums
+
+
+def get_genre_list(tracks):
+    genres = []
+    for track in tracks:
+        if track.genre not in genres:
+            genres.append(track.genre)
+    return genres
 
 
 def print_help():
@@ -232,16 +283,34 @@ if __name__ == "__main__":
         player.used/(2**20), player.used/player.total, 
         player.free/(2**20), player.free/player.total))
 
+    tracks = []
+    obj = Object()
     if 'audio_dir' in locals():
         need_size = 0
         entries = scandir(audio_dir)
         for entry in entries:
             if entry.name.endswith('.mp3'):
+                print(entry.name)
+                obj.add_track(Track(entry.path))
                 need_size += entry.stat(follow_symlinks=False).st_size
         print('With the file in %s need %dMB' % (audio_dir, ceil(need_size/(2**20))))
     else:
         need_size = getsize(audio_f)
         print('With the file %s need %dMB' % (audio_f, ceil(need_size/(2**20))))
+
+    print(get_artist_list(obj.tracks))
+    print(get_album_list(obj.tracks))
+    print(get_genre_list(obj.tracks))
+
+    exit(0)
+
+    # tracks = []
+    # if 'audio_dir' in locals():
+    #     entries = scandir(audio_dir)
+    #     for file in files:
+    #         if file.name.endswith('.mp3'):
+    #             tracks.append(Track(file))
+    #     exit(0)
 
     track = Track(audio_f)
 
