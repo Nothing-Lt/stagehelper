@@ -1,8 +1,10 @@
 import sys
-from os.path import isdir
-from os import path, mkdir
+from os.path import isdir, getsize
+from os import path, mkdir, scandir
 import logging
 import struct
+
+import psutil
 
 from sonypy_var import *
 from Header import *
@@ -200,6 +202,10 @@ if __name__ == "__main__":
         exit(1)
 
     dev_path = sys.argv[1]
+    if isdir(sys.argv[2]):
+        audio_dir = sys.argv[2]
+    else:
+        audio_f = sys.argv[2]
 
     # check the device is valid device or not
     ret = valid_device(dev_path)
@@ -218,9 +224,21 @@ if __name__ == "__main__":
         print(ret)
         exit(2)
 
+    player = psutil.disk_usage(dev_path)
     print('Found walkman')
+    print('Disk Size: %dMB, Used: %dMB(%02f), Free: %dMB(%02f)' % 
+        (player.total/(2**20), 
+        player.used/(2**20), player.used/player.total, 
+        player.free/(2**20), player.free/player.total))
 
-    track = Track(sys.argv[2])
+    if 'audio_dir' in locals():
+        need_size = scandir(audio_dir)
+        print('With the file in %s need %dMB' % (audio_dir, need_size/(2**20)))
+    else:
+        need_size = getsize(audio_f)
+        print('With the file %s need %dMB' % (audio_f, need_size/(2**20)))
+
+    track = Track(audio_f)
 
     header = Header()
     obj_pt = ObjectPointer() 
