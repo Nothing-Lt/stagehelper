@@ -125,17 +125,15 @@ class Database():
         obj.track_cnt = cat_cnt
         obj.track_sz = 8
         obj.padding = struct.pack('>2I', obj.track_cnt, 0)
-        # obj.padding[0] = obj.track_cnt
-        # obj.padding[1] = 0
 
         index = 1
         indexTPLB = 1
 
         data_blk = bytearray()
         for e in cat:
-            blk = struct.pack('<H', index)
+            blk = struct.pack('>H', index)
             blk += struct.pack('>H', 0x100)
-            blk += struct.pack('<H', indexTPLB)
+            blk += struct.pack('>H', indexTPLB)
             blk += struct.pack('<H', 0)
             data_blk += blk
 
@@ -144,7 +142,7 @@ class Database():
                 if str(getattr(track, attr)) != e:
                     break
 
-            indexTPLB = tracks.index(track) - 1
+            indexTPLB = tracks.index(track)
             index += 1
 
         index -= 1
@@ -152,14 +150,14 @@ class Database():
 
         obj2 = Object()
         obj2.magic = 'TPLB'
-        obj2.track_cnt = obj2.track_cnt
+        obj2.track_cnt = track_cnt
         obj2.track_sz = 2
         obj2.padding = struct.pack('>2I', obj2.track_cnt, 0)
 
         index = 0
         idx_blk = bytearray()
         for idx, track in enumerate(tracks):
-            blk = struct.pack('>H', idx)
+            blk = struct.pack('>H', idx+1)
             idx_blk += blk
             index += 1
 
