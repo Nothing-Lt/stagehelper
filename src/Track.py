@@ -105,13 +105,6 @@ class Track():
         except KeyError:
             self.date = '2001/01/01'
 
-        # print(self.title)
-        # print(self.album)
-        # print(self.time_len)
-        # print(self.track_id)
-        # print(self.author)
-        # print(self.genre)
-
     def generate_oma(self, target_path):
         if not path.isdir(target_path):
             print(target_path)
