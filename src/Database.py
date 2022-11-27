@@ -1,6 +1,9 @@
 
 import struct
 
+from os.path import isdir
+from os import mkdir
+
 from sonypy_var import *
 from Header import *
 from ObjectPointer import *
@@ -182,6 +185,45 @@ class Database():
         f.close()
 
 
+    def write_01TREE22(self):
+        header = Header()
+        header. magic = 'TREE'
+        header.op_cnt = 2
+
+        obj_pt1 = ObjectPointer()
+        obj_pt1.magic = 'GPLB'
+        obj_pt1.offset = 0x30
+        obj_pt1.length = 16
+
+        obj_pt2 = ObjectPointer()
+        obj_pt2.magic = 'TPLB'
+        obj_pt2.offset = 0x40
+        obj_pt2.length = 16
+
+        obj1 = Object()
+        obj1.magic = 'GPLB'
+        obj1.track_cnt = 0
+        obj1.track_sz = 8
+        obj1.padding = struct.pack('>2I', 0, 0)
+
+        obj2 = Object()
+        obj2.magic = 'TPLB'
+        obj2.track_cnt = 0
+        obj2.track_sz = 2
+        obj2.padding = struct.pack('>2I', 0, 0)
+
+        all_blk = header.tobytes() + obj_pt1.tobytes() + obj_pt2.tobytes() + \
+                    obj1.tobytes() + obj2.tobytes()
+
+        filepath = '%s/01TREE22.DAT' % (self.audio_path)
+        f = open(filepath, 'wb+')
+        if f is None:
+            print('Failed open %s' % filepath)
+            return
+        f.write(all_blk)
+        f.close()
+
+
     def write_02TREINF(self, tracks):
         header = Header()
         header.magic = 'GTIF'
@@ -269,6 +311,50 @@ class Database():
         f.write(track_bytestream)
         f.close()
 
+
+    def write_05CIDLST(self, tracks):
+        header = Header()
+        header.magic = 'CIDL'
+
+        obj_pt = ObjectPointer()
+        obj_pt.length = ((32+16) * len(tracks)) + 16
+        obj_pt.offset = 0x20
+
+        obj = Object()
+        obj.track_cnt = len(tracks)
+        obj.track_sz = 32 + 16
+        obj.padding = struct.pack('<2I', 0, 0)
+
+        padding = bytearray()
+        padding_blk1 = bytearray([0,0,0,0,0x1, 0xf, 0x50, 0x00, 0x00, 0x4, 0,0,0,0x1, 0x2, 0x3])
+        padding_blk2 = bytearray([0xc8, 0xd8, 0x36, 0xd8, 0x11, 0x22, 0x33, 0x44]) + bytearray([0] * 24)
+
+        for i in range(0, len(tracks)):
+            padding += (padding_blk1 + padding_blk2)
+        
+        all_blk = header.tobytes() + obj_pt.tobytes() + obj.tobytes() + padding
+
+        filepath = '%s/%s' % (self.audio_path, '05CIDLST.DAT')
+        f = open(filepath, 'wb+')
+        if f is None:
+            print('Failed open %s' % filepath)
+            return
+        f.write(all_blk)
+        f.close()
+
+
+    def sync_tracks(self, tracks):
+        idx = 1
+        for track in tracks:
+
+            dir_name = '%s/10F%02x' % (self.audio_path, (idx >> 8))
+            track.oma_name = '1%07x.OMA' % idx
+
+            if not isdir(dir_name):
+                mkdir(dir_name)
+            track.generate_oma(dir_name)
+
+            idx = idx + 1
 
     def get_artist_list(self, tracks):
         artists = []

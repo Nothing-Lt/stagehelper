@@ -14,20 +14,6 @@ from ObjectPointer import *
 from Object import *
 from Track import *
 
-def valid_device(device_path):
-    if not device_path:
-        return 'empty'
-
-    if path.exists(device_path):
-        # check the omgaudio/cntinfo.dat
-        if path.exists(device_path+'/'+AUDIO_P+'/'+CNTINF_F):
-            return 'valid'
-        else: 
-            return 'wrongdev'
-    else:
-        return 'nodev'
-
-
 # get header from cntinf.dat
 def get_header(f):
     raw_header = f.read(16)
@@ -148,45 +134,20 @@ if __name__ == "__main__":
         print('With the file %s need %dMB' % (audio_f, ceil(need_size/(2**20))))
 
     artist_lst = db.get_artist_list(obj.tracks)
-    db.write_01TREEXX(artist_lst, obj.tracks, 'author', 2)
     album_lst = db.get_album_list(obj.tracks)
+    genre_lst = db.get_genre_list(obj.tracks)
+
+    # write to database
+    db.write_00GTRLST()
+    db.write_01TREEXX(artist_lst, obj.tracks, 'author', 2)
     db.write_01TREEXX(album_lst, obj.tracks, 'album', 1)
     db.write_01TREEXX(album_lst, obj.tracks, 'album', 3)
-    genre_lst = db.get_genre_list(obj.tracks)
     db.write_01TREEXX(genre_lst, obj.tracks, 'genre', 4)
-    db.write_00GTRLST()
+    db.write_01TREE22()
+    db.write_02TREINF(obj.tracks)
     db.write_03GINF22()
     db.write_04CNTINF(obj.tracks)
-    db.write_02TREINF(obj.tracks)
-    exit(0)
-
-    track = Track(audio_f)
-
-    header = Header()
-    obj_pt = ObjectPointer() 
-    obj = Object()
-    obj.add_track(track)
-
-    idx = 1
-    tracks = obj.tracks
-    for track in tracks:
-
-        dir_name = '%s%s/10F%02x' % (dev_path, AUDIO_P, (idx >> 8))
-        track.oma_name = '1%07x.OMA' % idx
-
-        if not isdir(dir_name):
-            mkdir(dir_name)
-        track.generate_oma(dir_name)
-
-        idx = idx + 1
-
-    f = open(dev_path + AUDIO_P + '/' + CNTINF_F, 'wb+')
-    track_bytestream = bytearray()
-    for track in tracks:
-        track_bytestream = track_bytestream + track.tobytes()
-    f.write(header.tobytes())
-    f.write(obj_pt.tobytes())
-    f.write(obj.tobytes())
-    f.write(track_bytestream)
-    f.close()
-
+    db.write_05CIDLST(obj.tracks)
+    
+    # sync music to player
+    db.sync_tracks(obj.tracks)
