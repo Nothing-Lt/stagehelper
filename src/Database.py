@@ -6,6 +6,7 @@ from Header import *
 from ObjectPointer import *
 from Object import *
 from Track import *
+from sonypy_var import *
 
 class Database():
     def __init__(self):
@@ -102,32 +103,6 @@ class Database():
         f.close()
 
 
-    def write_03GINF22(self):
-        header = Header()
-        header.magic = 'GPIF'
-        header.CTE = bytearray([1,1,0,0])
-        header.op_cnt = 1
-
-        obj_pt = ObjectPointer()
-        obj_pt.magic = 'GPFB'
-        obj_pt.offset = 0x20
-        obj_pt.length = 16
-
-        obj = Object()
-        obj.magic = 'GPFB'
-        obj.track_cnt = 0
-        obj.track_sz = 784
-        obj.padding = struct.pack('<2I', 0, 0)
-
-        filepath = '%s/%s' % (self.audio_path, '03GINF22.DAT') 
-        f = open(filepath, 'wb+')
-        if f is None:
-            print('Cannot get file %s' % filepath)
-            return
-        f.write(header.tobytes() + obj_pt.tobytes() + obj.tobytes())
-        f.close()
-
-
     def write_01TREEXX(self, cat, tracks, attr, type_id):
         track_cnt = len(tracks)
         cat_cnt = len(cat)
@@ -204,7 +179,96 @@ class Database():
             print('Failed open %s' % filepath)
             return
         f.write(all_blk)
-        f.close()        
+        f.close()
+
+
+    def write_02TREINF(self, tracks):
+        header = Header()
+        header.magic = 'GTIF'
+
+        obj_pt = ObjectPointer()
+        obj_pt.magic = 'GTFB'
+        obj_pt.offset = 0x20
+        obj_pt.length = 0x2410
+
+        obj = Object()
+        obj.magic = 'GTFB'
+        obj.track_cnt = 34
+        obj.track_sz = 0x90
+        obj.padding = struct.pack('>2I', 0, 0)
+
+        padding_blk1 = struct.pack('>4I', 0,0,0,0x00010080)
+        padding_blk2 = bytes('TIT2', 'utf-8')[0:4] + struct.pack('<3I', 0x200, 0, 0)
+        padding_blk3 = bytearray([0] * 16)
+
+        padding = bytearray()
+        for i in range(0,4):
+            padding += padding_blk1 + padding_blk2
+            for j in range(0,7):
+                padding += padding_blk3
+
+        for i in range(0, 540):
+            padding += padding_blk3
+
+        all_blk = header.tobytes() + obj_pt.tobytes() + obj.tobytes() + padding
+
+        filepath = '%s/02TREINF.DAT' % (self.audio_path)
+        f = open(filepath, 'wb+')
+        if f is None:
+            print('Failed open %s' % filepath)
+            return
+        f.write(all_blk)
+        f.close()
+
+
+    def write_03GINF22(self):
+        header = Header()
+        header.magic = 'GPIF'
+        header.CTE = bytearray([1,1,0,0])
+        header.op_cnt = 1
+
+        obj_pt = ObjectPointer()
+        obj_pt.magic = 'GPFB'
+        obj_pt.offset = 0x20
+        obj_pt.length = 16
+
+        obj = Object()
+        obj.magic = 'GPFB'
+        obj.track_cnt = 0
+        obj.track_sz = 784
+        obj.padding = struct.pack('<2I', 0, 0)
+
+        filepath = '%s/%s' % (self.audio_path, '03GINF22.DAT')
+        f = open(filepath, 'wb+')
+        if f is None:
+            print('Cannot get file %s' % filepath)
+            return
+        f.write(header.tobytes() + obj_pt.tobytes() + obj.tobytes())
+        f.close()
+
+
+    def write_04CNTINF(self, tracks):
+        header = Header()
+        
+        obj_pt = ObjectPointer()
+        obj_pt.length =  (((TAGSIZE * 5) + 16) * len(tracks)) + 16
+        
+        obj = Object()
+        obj.track_cnt = len(tracks)
+        obj.track_sz = (TAGSIZE * 5) + 16
+        obj.padding = struct.pack('>2I', 0, 0)
+
+        filepath = '%s/%s' % (self.audio_path, CNTINF_F)
+        f = open(filepath, 'wb+')
+        track_bytestream = bytearray()
+        for track in tracks:
+            track_bytestream = track_bytestream + track.tobytes()
+        f.write(header.tobytes())
+        f.write(obj_pt.tobytes())
+        f.write(obj.tobytes())
+        f.write(track_bytestream)
+        f.close()
+
 
     def get_artist_list(self, tracks):
         artists = []

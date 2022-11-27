@@ -133,7 +133,6 @@ if __name__ == "__main__":
         player.used/(2**20), player.used/player.total, 
         player.free/(2**20), player.free/player.total))
 
-    tracks = []
     obj = Object()
     if 'audio_dir' in locals():
         need_size = 0
@@ -157,6 +156,8 @@ if __name__ == "__main__":
     db.write_01TREEXX(genre_lst, obj.tracks, 'genre', 4)
     db.write_00GTRLST()
     db.write_03GINF22()
+    db.write_04CNTINF(obj.tracks)
+    db.write_02TREINF(obj.tracks)
     exit(0)
 
     track = Track(audio_f)
