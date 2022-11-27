@@ -1,11 +1,12 @@
-# sonypy
+# stagehelper
 A tool for downloading music to walkman nw-e013 in python
 
-Build instruction for old_sonydb
+# Requirement
+1. python3.7 or above
+2. mutagen
+3. psutil
+
+# Usage
 ```
-sudo apt install make autotools-dev libid3-dev automake gcc g++ gawk
-$ ./autogen.sh
-$ ./configure
-$ make
-$ sudo make install
+$ python3 src/main.py ${YOUR_PLAYER_MOUNT_PATH} ${YOUR_SONG_PATH}
 ```

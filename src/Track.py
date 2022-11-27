@@ -46,7 +46,7 @@ class Track():
         tag_encoding = bytestream[4:6]
         tag_val = bytestream[6:].decode('utf-8', "ignore")
 
-        # fill in info 
+        # fill in info
         if tag_type == 'TIT2':
             self.title = tag_val
         elif tag_type == 'TPE1':

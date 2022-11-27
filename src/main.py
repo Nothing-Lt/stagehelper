@@ -148,6 +148,6 @@ if __name__ == "__main__":
     db.write_03GINF22()
     db.write_04CNTINF(obj.tracks)
     db.write_05CIDLST(obj.tracks)
-    
+
     # sync music to player
     db.sync_tracks(obj.tracks)

@@ -1,9 +1,3 @@
-1. try to fill the track info from mp3 file
-
-2. the mp3 file cannot played with current implementation.
-    a. learn how other info files constructed
-    b. make the implementation for those info files
-
-3. consider the batch download, current implementation have to change code to donwload
-    a. need to do 1 and 2, and need to set the OMA file name automatically
-    b. make the audio dir in auto
+** IT CAN DOWNLOAD THE SONG TO MY PLAYER NOW!!! **
+1. make the implementation to be cleaner
+    a. consider to have a tag class and make it to be flexible in track
