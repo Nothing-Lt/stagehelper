@@ -9,6 +9,7 @@ from Header import *
 from ObjectPointer import *
 from Object import *
 from Track import *
+from Tag import *
 from sonypy_var import *
 
 class Database():
@@ -144,7 +145,7 @@ class Database():
 
             # if (type_id == 1) or (type_id == 3):
             for track in tracks[indexTPLB-1:]:
-                if str(getattr(track, attr)) != e:
+                if str(track.tags[attr].val) != e:
                     break
 
             indexTPLB = tracks.index(track)
@@ -239,20 +240,26 @@ class Database():
         obj.track_sz = 0x90
         obj.padding = struct.pack('>2I', 0, 0)
 
-        padding_blk1 = struct.pack('>4I', 0,0,0,0x00010080)
-        padding_blk2 = bytes('TIT2', 'utf-8')[0:4] + struct.pack('<3I', 0x200, 0, 0)
-        padding_blk3 = bytearray([0] * 16)
+        track = Track()
+        track.ftype = bytearray([0,0,0,0])
+        track.time_len = 0
+        track.encoding = 0
+        track.tag_len = 1
+        track.tag_sz = TAGSIZE
+
+        tag = Tag()
+        tag.type = bytes('TIT2','utf-8')[0:4]
+        track.tags['ph'] = tag
+
+        track_blk = bytearray()
+        for i in range(0, 4):
+            track_blk += track.tobytes() + tag.tobytes(TAGSIZE)
 
         padding = bytearray()
-        for i in range(0,4):
-            padding += padding_blk1 + padding_blk2
-            for j in range(0,7):
-                padding += padding_blk3
-
         for i in range(0, 540):
-            padding += padding_blk3
+            padding += bytearray([0] * 16)
 
-        all_blk = header.tobytes() + obj_pt.tobytes() + obj.tobytes() + padding
+        all_blk = header.tobytes() + obj_pt.tobytes() + obj.tobytes() + track_blk + padding
 
         filepath = '%s/02TREINF.DAT' % (self.audio_path)
         f = open(filepath, 'wb+')
@@ -304,7 +311,7 @@ class Database():
         f = open(filepath, 'wb+')
         track_bytestream = bytearray()
         for track in tracks:
-            track_bytestream = track_bytestream + track.tobytes()
+            track_bytestream = track_bytestream + track.tobytes() + track.tags_to_bytes()
         f.write(header.tobytes())
         f.write(obj_pt.tobytes())
         f.write(obj.tobytes())
@@ -359,8 +366,8 @@ class Database():
     def get_artist_list(self, tracks):
         artists = []
         for track in tracks:
-            if track.author not in artists:
-                artists.append(track.author)
+            if track.tags['author'].val not in artists:
+                artists.append(track.tags['author'].val)
         artists.sort()
         return artists
 
@@ -368,8 +375,8 @@ class Database():
     def get_album_list(self, tracks):
         albums = []
         for track in tracks:
-            if track.album not in albums:
-                albums.append(track.album)
+            if track.tags['album'].val not in albums:
+                albums.append(track.tags['album'].val)
         albums.sort()
         return albums
 
@@ -377,8 +384,8 @@ class Database():
     def get_genre_list(self, tracks):
         genres = []
         for track in tracks:
-            if track.genre not in genres:
-                genres.append(track.genre)
+            if track.tags['genre'].val not in genres:
+                genres.append(track.tags['genre'].val)
         genres.sort()
         return genres
 
@@ -388,7 +395,7 @@ class Database():
 
         for track in tracks:
             for idx, ele in enumerate(anylist):
-                track_attr = str(getattr(track, attr))
+                track_attr = track.tags[attr].val
                 if track_attr == ele:
                     break
             tracks_lst[idx].append(track)

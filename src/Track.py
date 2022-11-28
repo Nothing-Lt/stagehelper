@@ -4,11 +4,19 @@ from os import path
 
 from mutagen.easyid3 import EasyID3 as id3
 
+from Tag import *
 from sonypy_var import *
 
 class Track():
     def __init__(self, audiofile=None):
-        
+        # set the common info
+        self.ftype = bytearray([0, 0, 0xff, 0xff])
+        self.encoding = 0
+        self.tag_len = 5
+        self.tag_sz = 128
+        self.oma_name = ''
+        self.tags = dict()
+        self.sync = False
         # set the audio based info
         if audiofile is None:
             self.time_len = 0
@@ -23,87 +31,85 @@ class Track():
             self.filename = audiofile
             self.fill_info_by_audio(audiofile)
             self.oma_name = ''
-        
-        # set the common info
-        self.ftype = bytearray([0, 0, 0xff, 0xff])
-        self.encoding = 0
-        self.tag_len = 5
-        self.tag_sz = 128
-        self.oma_name = ''
-        self.sync = False
 
-    def fill_info_by_track(self, track_id, bytestream):
-        self.track_id = track_id
-        self.ftype = bytestream[0:4]
-        self.encoding = struct.unpack('>I', bytestream[4:8])[0]
-        self.time_len = int(struct.unpack('>I', bytestream[8:12])[0] / 1000)
-        self.tag_len = struct.unpack('>H', bytestream[12:14])[0]
-        self.tag_sz = struct.unpack('>H', bytestream[14:16])[0]
+    # def fill_info_by_track(self, track_id, bytestream):
+    #     self.track_id = track_id
+    #     self.ftype = bytestream[0:4]
+    #     self.encoding = struct.unpack('>I', bytestream[4:8])[0]
+    #     self.time_len = int(struct.unpack('>I', bytestream[8:12])[0] / 1000)
+    #     self.tag_len = struct.unpack('>H', bytestream[12:14])[0]
+    #     self.tag_sz = struct.unpack('>H', bytestream[14:16])[0]
 
-    def fill_info_by_tags(self, bytestream):        
-        # decode bytestream
-        tag_type = bytestream[0:4].decode('utf-8')
-        tag_encoding = bytestream[4:6]
-        tag_val = bytestream[6:].decode('utf-8', "ignore")
+    # def fill_info_by_tags(self, bytestream):        
+    #     # decode bytestream
+    #     tag = Tag()
+    #     tag.type = bytestream[0:4].decode('utf-8')
+    #     tag.encoding = bytestream[4:6]
+    #     tag.val = bytestream[6:].decode('utf-8', "ignore")
+    #     self.tags[tag_type] = tag
 
-        # fill in info
-        if tag_type == 'TIT2':
-            self.title = tag_val
-        elif tag_type == 'TPE1':
-            self.author = tag_val
-        elif tag_type == 'TALB':
-            self.album = tag_val
-        elif tag_type == 'TCON':
-            self.genre = tag_val
-        else:
-            return False, tag_type, tag_val
-        return True, tag_type, tag_val
 
     def fill_info_by_audio(self, filename):
         self.filename = filename
-        tags = id3(filename)
+        audio_tags = id3(filename)
 
         # get the title
+        tag = Tag()
+        tag.type = bytes('TIT2', 'utf-8')[0:4]
         try:
-            self.title = tags['title'][0]
-        except KeyError: 
-            self.title = path.basename(filename)
-        
-        # get album
-        try:
-            self.album = tags['album'][0]
+            tag.val = audio_tags['title'][0]
         except KeyError:
-            self.album = 'Unknown'
-        
+           tag.val = path.basename(filename)
+        self.tags['title'] = tag
+
+        # get album
+        tag = Tag()
+        tag.type = bytes('TALB', 'utf-8')[0:4]
+        try:
+            tag.val = audio_tags['album'][0]
+        except KeyError:
+            tag.val = 'Unknown'
+        self.tags['album'] = tag
+
         # get time length
         try:
-            self.time_len = int(tags['length'][0]) * 1000
+            self.time_len = int(audio_tags['length'][0])
         except Exception:
             self.time_len = 0
 
         # get track number
         try:
-            self.track_id = tags['tracknumber'][0]
+            self.track_id = audio_tags['tracknumber'][0]
         except KeyError:
             self.track_id = 1
 
         # get author
+        tag = Tag()
+        tag.type = bytes('TPE1', 'utf-8')[0:4]
         try:
-            self.author = tags['author'][0]
+            tag.val = audio_tags['author'][0]
         except KeyError:
-            self.author = 'Unknown'
+            tag.val = 'Unknown'
+        self.tags['author'] = tag
 
         # get genre
+        tag = Tag()
+        tag.type = bytes('TCON', 'utf-8')[0:4]
         try:
-            self.genre = tags['genre'][0]
+            tag.val = audio_tags['genre'][0]
         except KeyError:
-            self.genre = 'Blue'
+            tag.val = 'Blue'
+        self.tags['genre'] = tag
 
-        # get date            
+        # get date
         try:
-            self.date = tags['date'][0]
+            self.date = audio_tags['date'][0]
         except KeyError:
             self.date = '2001/01/01'
+
+        tag = Tag()
+        tag.type = bytes('TSOP', 'utf-8')[0:4]
+        self.tags['tsop'] = tag
 
     def generate_oma(self, target_path):
         if not path.isdir(target_path):
@@ -133,8 +139,6 @@ class Track():
                         int(audio_header[9]) + 10
         else:
             start_point = 0
-        # print(audio_tag)
-        # print(start_point)
 
         # skip 0s
         while True:
@@ -159,9 +163,6 @@ class Track():
         mpeg_ver = (mpeg_head[0] & 0x18) >> 3
         layer_ver = (mpeg_head[0] & 0x6) >> 1
         sample_rate_idx = (mpeg_head[1] & 0xc) >> 2
-        # print(mpeg_ver)
-        # print(layer_ver)
-        # print(sample_rate_idx)
 
         if (((mpeg_ver * 3) + sample_rate_idx) >= 12) or (((mpeg_ver * 3) + layer_ver) >= 16):
             frame_cnt = 0
@@ -169,9 +170,6 @@ class Track():
             sample_rate = SAMPLE_RATE[(mpeg_ver*3)+sample_rate_idx]
             sample_perframe = SAMPLE_PER_FRAME[(mpeg_ver*4)+layer_ver]
             frame_cnt = int((self.time_len * sample_rate) / sample_perframe)
-        # print(sample_rate)
-        # print(sample_perframe)
-        # print(frame_cnt)
 
         # skip frame header
         vbr_tag = bytestream[start_point+36:start_point+40]
@@ -186,22 +184,22 @@ class Track():
 
         # tit2 limit the title to be 32-byte, consider unicode 16-char
         title_header = bytes('TIT2','utf-8')[0:4] + struct.pack('>I', 32) + bytearray([0,0,2])
-        title_var = bytes(self.title, 'utf-8')[0:16] 
+        title_var = bytes(self.tags['title'].val, 'utf-8')[0:16] 
         title_var = title_var + bytearray([0] * (32-len(title_var)))
 
         # artist tag, same as tit2
         artist_header = bytes('TPE1', 'utf-8')[0:4] + struct.pack('>I', 32) + bytearray([0,0,2])
-        artist_var = bytes(self.author, 'utf-8')[0:16]
+        artist_var = bytes(self.tags['author'].val, 'utf-8')[0:16]
         artist_var = artist_var + bytearray([0] * (32-len(artist_var)))
 
         # album tag, same as tit2
         album_header = bytes('TALB', 'utf-8')[0:4] + struct.pack('>I', 32) + bytearray([0,0,2])
-        album_var = bytes(self.album, 'utf-8')[0:16]
+        album_var = bytes(self.tags['album'].val, 'utf-8')[0:16]
         album_var = album_var + bytearray([0] * (32-len(album_var)))
 
         # genre tag
         genre_header = bytes('TCON', 'utf-8')[0:4] + struct.pack('>I', 32) + bytearray([0,0,2])
-        genre_var = bytes(self.genre, 'utf-8')[0:16]
+        genre_var = bytes(self.tags['genre'].val, 'utf-8')[0:16]
         genre_var = genre_var + bytearray([0] * (32-len(genre_var)))
 
         # track number tag
@@ -266,66 +264,17 @@ class Track():
 
     def tobytes(self):
         # encode the track 
-        self.tag_len = 5
-        bytestream =  self.ftype + \
-                        struct.pack('>2I2H', 
-                        self.encoding, (self.time_len * 1000), 
-                        self.tag_len, self.tag_sz)
+        self.tag_len = len(self.tags)
+        blk =  self.ftype + \
+            struct.pack('>2I2H', self.encoding, (self.time_len * 1000), self.tag_len, self.tag_sz)
 
-        # encode each tag for this track
-        # encode title
-        bytestream_title = bytes('TIT2', 'utf-8')[0:4] + \
-                        struct.pack('>H', 2) + \
-                        bytes(self.title, 'utf-8')
-
-        padding = self.tag_sz - len(bytestream_title)
-        for j in range(0, padding):
-            bytestream_title += bytes([0])
-        
-        # encode author
-        bytestream_author = bytes('TPE1', 'utf-8')[0:4] + \
-                            struct.pack('>H', 2) + \
-                            bytes(self.author, 'utf-8')
-
-        padding = self.tag_sz - len(bytestream_author)
-        for j in range(0, padding):
-            bytestream_author += bytes([0])
-
-        # encode album
-        bytestream_album = bytes('TALB', 'utf-8')[0:4] + \
-                        struct.pack('>H', 2) + \
-                        bytes(self.album, 'utf-8')
-
-        padding = self.tag_sz - len(bytestream_album)
-        for j in range(0, padding):
-            bytestream_album += bytes([0])
-
-        # encode grene
-        bytestream_genre = bytes('TCON', 'utf-8')[0:4] + \
-                    struct.pack('>H', 2) + \
-                    bytes(self.genre, 'utf-8')
-
-        padding = self.tag_sz - len(bytestream_genre)
-        for j in range(0, padding):
-            bytestream_genre += bytes([0])
-
-        # encode TSOP
-        bytestream_tsop = bytes('TSOP', 'utf-8')[0:4] + \
-                        struct.pack('>H', 2)
-        padding = self.tag_sz - len(bytestream_tsop)
-        for j in range(0, padding):
-            bytestream_tsop += bytes([0])
-
-        bytestream += (bytestream_title + bytestream_author + bytestream_album + bytestream_genre + bytestream_tsop)
-        return bytestream
+        return blk
     # def tobytes(self)
 
-    def __str__(self):
-        return 'ftype:'+ str(self.ftype) + ', ' + \
-                'encoding:' + str(self.encoding)+ ', ' + \
-                'time_len:' + str(self.time_len) + ', ' + \
-                'title:' + self.title + ', ' + \
-                'author:' + self.author + ', ' + \
-                'album:' + self.album + ', ' + \
-                'genre:' + self.genre
-    # def __str__(self)
+    def tags_to_bytes(self):
+        tags_blk = self.tags['title'].tobytes(self.tag_sz)
+        tags_blk += self.tags['author'].tobytes(self.tag_sz)
+        tags_blk += self.tags['album'].tobytes(self.tag_sz)
+        tags_blk += self.tags['genre'].tobytes(self.tag_sz)
+        tags_blk += self.tags['tsop'].tobytes(self.tag_sz)
+        return tags_blk
