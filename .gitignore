@@ -1,0 +1,6 @@
+
+# ignore pycache dir
+__pycache__
+
+# ignore log file
+sonypy.log
