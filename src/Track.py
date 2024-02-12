@@ -2,6 +2,7 @@ import struct
 
 from os import path
 
+from mutagen.mp3 import MP3
 from mutagen.easyid3 import EasyID3 as id3
 
 from Tag import *
@@ -76,6 +77,10 @@ class Track():
             self.time_len = int(audio_tags['length'][0])
         except Exception:
             self.time_len = 0
+
+        if self.time_len == 0:
+            au_tmp = MP3(filename)
+            self.time_len = au_tmp.info.length
 
         # get track number
         try:
@@ -238,7 +243,7 @@ class Track():
             third_header = third_header + bytearray([0x80])
         third_header = third_header + bytearray([self.encoding])
         third_header = third_header + bytearray([0x10])
-        third_header = third_header + struct.pack('>I', self.time_len * 1000)
+        third_header = third_header + struct.pack('>I', int(self.time_len * 1000))
         third_header = third_header + struct.pack('>I', frame_cnt)
         third_header = third_header + bytearray([0,0,0,0])
         padding = bytearray([0] * 48)
@@ -266,7 +271,7 @@ class Track():
         # encode the track 
         self.tag_len = len(self.tags)
         blk =  self.ftype + \
-            struct.pack('>2I2H', self.encoding, (self.time_len * 1000), self.tag_len, self.tag_sz)
+            struct.pack('>2I2H', self.encoding, int((self.time_len * 1000)), self.tag_len, self.tag_sz)
 
         return blk
     # def tobytes(self)
