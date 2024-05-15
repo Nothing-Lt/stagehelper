@@ -33,23 +33,6 @@ class Track():
             self.fill_info_by_audio(audiofile)
             self.oma_name = ''
 
-    # def fill_info_by_track(self, track_id, bytestream):
-    #     self.track_id = track_id
-    #     self.ftype = bytestream[0:4]
-    #     self.encoding = struct.unpack('>I', bytestream[4:8])[0]
-    #     self.time_len = int(struct.unpack('>I', bytestream[8:12])[0] / 1000)
-    #     self.tag_len = struct.unpack('>H', bytestream[12:14])[0]
-    #     self.tag_sz = struct.unpack('>H', bytestream[14:16])[0]
-
-    # def fill_info_by_tags(self, bytestream):        
-    #     # decode bytestream
-    #     tag = Tag()
-    #     tag.type = bytestream[0:4].decode('utf-8')
-    #     tag.encoding = bytestream[4:6]
-    #     tag.val = bytestream[6:].decode('utf-8', "ignore")
-    #     self.tags[tag_type] = tag
-
-
     def fill_info_by_audio(self, filename):
         self.filename = filename
         audio_tags = id3(filename)
