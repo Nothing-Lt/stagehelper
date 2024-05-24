@@ -138,14 +138,14 @@ class Track():
 
         if bytestream[start_point] != 0xff:
             print('Not a valid file format')
-            f.close()
+            fin.close()
             return
 
         # go parse the info from audio file
         mpeg_head = bytestream[start_point+1:start_point+4]
         if mpeg_head[0] & 0xe0 != 0xe0:
             print('invalid encoding')
-            f.close()
+            fin.close()
             return
 
         self.encoding = ((mpeg_head[0] & 0x1e) << 3) + \
