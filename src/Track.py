@@ -70,6 +70,8 @@ class Track():
             self.track_id = audio_tags['tracknumber'][0]
         except KeyError:
             self.track_id = 1
+        if type(self.track_id) is not int:
+            self.track_id = int(self.track_id)
 
         # get author
         tag = Tag()
